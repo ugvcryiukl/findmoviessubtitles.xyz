@@ -4,7 +4,7 @@ A modern, responsive, and high-fidelity web application to search, merge, and do
 
 ## Features
 
-- **Concurrent Searching & Merging**: Queries SubDL and SubSource simultaneously when you search for a movie or TV episode, merging results into a unified view.
+- **Concurrent Searching & Merging**: Queries SubDL, SubSource, and OpenSubtitles simultaneously when you search for a movie or TV episode, merging results into a unified view.
 - **Release-Name Deduplication**: Automatically groups identical subtitle releases, making it easy to see which files are available without scrolling through exact duplicates.
 - **Secure Server-Side API Proxies**: Keeps your API keys completely hidden from client-side network inspectors by proxying all searches and download streams server-side.
 - **Rich Media Metadata**: Renders high-resolution posters, backdrops, plot summaries, ratings, and genre badges from TMDB to create a premium streaming-service aesthetic.
@@ -31,8 +31,9 @@ Open `.env.local` and configure your API keys:
 - **`SUBDL_API_KEY`**: Obtain from [SubDL API Panel](https://subdl.com/panel/api) (free account allows 2,000 requests/day).
 - **`SUBSOURCE_API_KEY`**: Obtain from [SubSource My Profile Dashboard](https://subsource.net).
 - **`TMDB_API_KEY`**: Obtain from [TMDB API Settings](https://www.themoviedb.org/documentation/api).
+- **`OPENSUBTITLES_API_KEY`**, **`OPENSUBTITLES_USERNAME`**, **`OPENSUBTITLES_PASSWORD`**, **`OPENSUBTITLES_USER_AGENT`**: Obtain credentials from [OpenSubtitles.com API portal](https://opensubtitles.com/api/v1/).
 
-*Note: If no API keys are provided, the app will gracefully fall back to premium mock datasets for local development.*
+*Note: If no API keys are provided, the app will gracefully fall back to premium mock datasets or continue running with available providers for local development.*
 
 ### 3. Run Development Server
 Start the Next.js local server:
@@ -58,7 +59,13 @@ Vercel is the creator of Next.js and provides instant serverless deployment for 
 - **`SUBDL_API_KEY`**: Your API key for SubDL.
 - **`SUBSOURCE_API_KEY`**: Your API key for SubSource.
 - **`TMDB_API_KEY`**: Your API key for TMDB.
+- **`OPENSUBTITLES_API_KEY`**: Your API key for OpenSubtitles.com.
+- **`OPENSUBTITLES_USERNAME`**: Your username for OpenSubtitles.com.
+- **`OPENSUBTITLES_PASSWORD`**: Your password for OpenSubtitles.com.
+- **`OPENSUBTITLES_USER_AGENT`**: Custom user-agent string for OpenSubtitles.com API (e.g., `FindMoviesSubtitles v1.0`).
 - **`NEXT_PUBLIC_SITE_URL`**: `https://findmoviessubtitles.xyz`
+
+*Note: After adding or changing environment variables in the Vercel dashboard, a project redeploy is required to apply the new configuration.*
 
 #### Deployment Steps:
 1. Import your GitHub repository in Vercel.
@@ -75,6 +82,7 @@ Once deployed, verify the following features:
 - [ ] Subtitle filtering by language
 - [ ] SubDL subtitle downloads proxy successfully
 - [ ] SubSource subtitle downloads proxy successfully
+- [ ] OpenSubtitles subtitle downloads proxy successfully
 - [ ] Sitemap (`/sitemap.xml`) resolves correctly
 - [ ] Robots (`/robots.txt`) matches the production configuration
 - [ ] favicon (`/favicon.ico`) renders in the browser tab

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { downloadSubsourceSubtitle } from '@/services/subsource';
+import { downloadOpenSubtitlesSubtitle } from '@/services/opensubtitles';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -100,6 +101,55 @@ export async function GET(request: Request) {
       });
     }
 
+    if (source === 'opensubtitles') {
+      if (!idStr) {
+        return NextResponse.json({ error: 'Missing parameter "id" for OpenSubtitles download' }, { status: 400 });
+      }
+
+      console.log(`Proxying OpenSubtitles download for file ID: ${idStr}`);
+      const dlInfo = await downloadOpenSubtitlesSubtitle(idStr);
+      if (!dlInfo || !dlInfo.link) {
+        return NextResponse.json({ error: 'Failed to retrieve OpenSubtitles download link' }, { status: 500 });
+      }
+
+      // Validate the host to mitigate SSRF
+      const safeDownloadUrl = resolveSafeOpensubtitlesDownloadUrl(dlInfo.link);
+      if (!safeDownloadUrl) {
+        return NextResponse.json({ error: 'Forbidden download host' }, { status: 403 });
+      }
+
+      console.log("Proxying OpenSubtitles download from trusted host");
+      const userAgent = process.env.OPENSUBTITLES_USER_AGENT || 'FindMoviesSubtitles v1.0';
+      const response = await fetch(safeDownloadUrl, {
+        headers: {
+          'User-Agent': userAgent,
+        },
+      });
+
+      if (response.status === 429) {
+        return NextResponse.json({ error: 'OpenSubtitles download limit exceeded' }, { status: 429 });
+      }
+      if (!response.ok) {
+        return NextResponse.json({ error: `Failed to download file from OpenSubtitles: ${response.statusText}` }, { status: response.status });
+      }
+
+      const fileBuffer = await response.arrayBuffer();
+      let filename = dlInfo.fileName || 'subtitle.srt';
+
+      // Ensure appropriate extension
+      if (!filename.endsWith('.srt') && !filename.endsWith('.vtt') && !filename.endsWith('.zip')) {
+        filename = `${filename}.srt`;
+      }
+
+      return new Response(fileBuffer, {
+        headers: {
+          'Content-Type': 'application/octet-stream',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Cache-Control': 'no-cache'
+        }
+      });
+    }
+
     return NextResponse.json({ error: `Unsupported download source: ${source}` }, { status: 400 });
   } catch (error) {
     console.error('Download Proxy Error:', error);
@@ -158,6 +208,50 @@ function getFilenameFromUrl(url: string): string | null {
       return lastPart;
     }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+// Helper to resolve and validate OpenSubtitles download URLs
+function resolveSafeOpensubtitlesDownloadUrl(urlStr: string): string | null {
+  const allowedHosts = new Set([
+    "dl.opensubtitles.com",
+    "vip-api.opensubtitles.com",
+    "api.opensubtitles.com",
+    "opensubtitles.com",
+  ]);
+
+  try {
+    const url = new URL(urlStr);
+    const hostname = url.hostname.toLowerCase();
+
+    // Allow exact allowed hosts, or subdomains under opensubtitles.com
+    const isAllowedHost =
+      allowedHosts.has(hostname) ||
+      hostname.endsWith(".opensubtitles.com");
+
+    if (!isAllowedHost) {
+      return null;
+    }
+
+    if (url.protocol !== "https:") {
+      return null;
+    }
+
+    // SSRF block: reject local/private IPs and loopbacks
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "169.254.169.254" ||
+      hostname.startsWith("10.") ||
+      hostname.startsWith("192.168.") ||
+      hostname.startsWith("172.16.")
+    ) {
+      return null;
+    }
+
+    return url.toString();
   } catch {
     return null;
   }

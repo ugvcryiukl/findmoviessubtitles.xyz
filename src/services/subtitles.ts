@@ -1,6 +1,7 @@
 import { getMediaDetails } from '@/services/tmdb';
 import { fetchSubdlSubtitles } from '@/services/subdl';
 import { searchSubsourceMovie, fetchSubsourceSubtitles } from '@/services/subsource';
+import { fetchOpenSubtitlesSubtitles } from '@/services/opensubtitles';
 
 export interface UnifiedSubtitle {
   id: string;
@@ -9,14 +10,16 @@ export interface UnifiedSubtitle {
   uploader: string;
   comment: string;
   hi: boolean;
-  sources: ('subdl' | 'subsource')[];
+  sources: ('subdl' | 'subsource' | 'opensubtitles')[];
   downloads: {
     subdl?: string;
     subsource?: string;
+    opensubtitles?: string;
   };
   pages: {
     subdl?: string;
     subsource?: string;
+    opensubtitles?: string;
   };
 }
 
@@ -71,7 +74,7 @@ export async function fetchUnifiedSubtitles({
 
   console.log(`[fetchUnifiedSubtitles] Searching subtitles for ${title} (IMDb: ${imdbId || 'None'}, TMDB: ${tmdbId})`);
 
-  // 2. Query SubDL & SubSource simultaneously
+  // 2. Query SubDL, SubSource & OpenSubtitles simultaneously
   const subdlPromise = fetchSubdlSubtitles({
     imdb_id: imdbId,
     tmdb_id: tmdbId,
@@ -110,8 +113,25 @@ export async function fetchUnifiedSubtitles({
     }
   })();
 
-  // Resolve both API promises
-  const [subdlSubs, subsourceSubs] = await Promise.all([subdlPromise, subsourcePromise]);
+  const opensubtitlesPromise = fetchOpenSubtitlesSubtitles({
+    imdb_id: imdbId,
+    tmdb_id: tmdbId,
+    film_name: title,
+    languages: languagesStr,
+    type,
+    season_number: season,
+    episode_number: episode
+  }).catch(err => {
+    console.error('Error fetching OpenSubtitles subtitles:', err);
+    return [];
+  });
+
+  // Resolve all API promises
+  const [subdlSubs, subsourceSubs, opensubtitlesSubs] = await Promise.all([
+    subdlPromise,
+    subsourcePromise,
+    opensubtitlesPromise
+  ]);
 
   // 3. Merge and Deduplicate
   const subtitleMap = new Map<string, UnifiedSubtitle>();
@@ -122,7 +142,7 @@ export async function fetchUnifiedSubtitles({
     uploader: string,
     comment: string,
     hi: boolean,
-    source: 'subdl' | 'subsource',
+    source: 'subdl' | 'subsource' | 'opensubtitles',
     downloadUrl: string,
     pageUrl: string
   ) => {
@@ -147,9 +167,12 @@ export async function fetchUnifiedSubtitles({
         const path = toRelativePath(downloadUrl);
         existing.downloads.subdl = `/api/download?source=subdl&path=${encodeURIComponent(path)}`;
         existing.pages.subdl = pageUrl;
-      } else {
+      } else if (source === 'subsource') {
         existing.downloads.subsource = `/api/download?source=subsource&id=${downloadUrl}`;
         existing.pages.subsource = pageUrl;
+      } else {
+        existing.downloads.opensubtitles = `/api/download?source=opensubtitles&id=${downloadUrl}`;
+        existing.pages.opensubtitles = pageUrl;
       }
 
       // Merge uploader info
@@ -184,10 +207,14 @@ export async function fetchUnifiedSubtitles({
         const path = toRelativePath(downloadUrl);
         unifiedSub.downloads.subdl = `/api/download?source=subdl&path=${encodeURIComponent(path)}`;
         unifiedSub.pages.subdl = pageUrl;
-      } else {
+      } else if (source === 'subsource') {
         // SubSource uses ID
         unifiedSub.downloads.subsource = `/api/download?source=subsource&id=${downloadUrl}`;
         unifiedSub.pages.subsource = pageUrl;
+      } else {
+        // OpenSubtitles uses file ID
+        unifiedSub.downloads.opensubtitles = `/api/download?source=opensubtitles&id=${downloadUrl}`;
+        unifiedSub.pages.opensubtitles = pageUrl;
       }
 
       subtitleMap.set(key, unifiedSub);
@@ -219,6 +246,23 @@ export async function fetchUnifiedSubtitles({
       'subsource',
       String(sub.subtitleId),
       `https://subsource.net${sub.link}`
+    );
+  }
+
+  // Process OpenSubtitles subtitles
+  for (const sub of opensubtitlesSubs) {
+    const rawComment = sub.raw && typeof sub.raw === 'object' && (sub.raw as any).attributes?.comments
+      ? (sub.raw as any).attributes.comments
+      : '';
+    mergeSubtitle(
+      sub.releaseName,
+      sub.language,
+      sub.uploader || 'Unknown',
+      rawComment,
+      sub.hi,
+      'opensubtitles',
+      String(sub.fileId),
+      sub.pageUrl || ''
     );
   }
 

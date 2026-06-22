@@ -483,6 +483,12 @@
   border-color: rgba(20, 184, 166, 0.2);
 }
 
+.opensubtitlesColor {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
 .downloadWrapper {
   display: flex;
   gap: 6px;
@@ -517,6 +523,14 @@
 
 .subsourceBtn:hover {
   background: #0f766e;
+}
+
+.opensubtitlesBtn {
+  background: #d97706;
+}
+
+.opensubtitlesBtn:hover {
+  background: #b45309;
 }
 
 .dlBtnDisabled {

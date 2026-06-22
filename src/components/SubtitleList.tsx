@@ -181,14 +181,14 @@ interface HistoryItem {
   mediaTitle: string;
   release_name: string;
   language: string;
-  source: 'subdl' | 'subsource';
+  source: 'subdl' | 'subsource' | 'opensubtitles';
   downloadUrl: string;
   timestamp: number;
 }
 
 function createHistoryItem(
   subtitle: UnifiedSubtitle,
-  source: 'subdl' | 'subsource',
+  source: 'subdl' | 'subsource' | 'opensubtitles',
   downloadUrl: string,
   mediaTitle: string
 ): HistoryItem {
@@ -216,6 +216,7 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
   });
   const [selectedReleaseKey, setSelectedReleaseKey] = useState<string>('all');
   const [selectedTypeKey, setSelectedTypeKey] = useState<'all' | 'standard' | 'hi'>('all');
+  const [selectedSourceKey, setSelectedSourceKey] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -227,6 +228,12 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
 
   const releaseTypeOptions = RELEASE_TYPES.map(rt => ({ key: rt.key, label: rt.label }));
   const subtitleTypeOptions = SUBTITLE_TYPES.map(st => ({ key: st.key, label: st.label }));
+  const sourceOptions = [
+    { key: 'all', label: 'All Sources' },
+    { key: 'subdl', label: 'SubDL' },
+    { key: 'subsource', label: 'SubSource' },
+    { key: 'opensubtitles', label: 'OpenSubtitles' }
+  ];
 
   // Helper to get active labels for button display
   const getSelectedLangLabel = () => {
@@ -245,7 +252,7 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
   const handleDownload = async (
     event: React.MouseEvent,
     subtitle: UnifiedSubtitle,
-    source: 'subdl' | 'subsource'
+    source: 'subdl' | 'subsource' | 'opensubtitles'
   ) => {
     event.preventDefault();
     event.stopPropagation();
@@ -253,7 +260,7 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
     const targetId = `${subtitle.id}-${source}`;
     if (downloadingId === targetId) return;
 
-    const downloadUrl = source === 'subdl' ? subtitle.downloads.subdl : subtitle.downloads.subsource;
+    const downloadUrl = subtitle.downloads[source];
     if (!downloadUrl) return;
 
     setDownloadingId(targetId);
@@ -282,10 +289,13 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
         let baseName = subtitle.release_name;
         baseName = baseName.replace(/\.(zip|rar|srt|txt)$/i, '');
         const cleanRelease = baseName.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/__+/g, '_');
-        filename = `${cleanTitle}_${cleanLang}_${cleanRelease}_[${source}].zip`;
+        const ext = source === 'opensubtitles' ? 'srt' : 'zip';
+        filename = `${cleanTitle}_${cleanLang}_${cleanRelease}_[${source}].${ext}`;
       }
 
-      if (!filename.endsWith('.zip')) {
+      // Check if it's zipped or raw srt/vtt to prevent corrupt naming
+      const isZip = res.headers.get('Content-Type') === 'application/zip' || filename.endsWith('.zip');
+      if (!isZip && !filename.endsWith('.srt') && !filename.endsWith('.vtt')) {
         filename = `${filename}.zip`;
       }
 
@@ -319,10 +329,11 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
     setSelectedLangKey('all');
     setSelectedReleaseKey('all');
     setSelectedTypeKey('all');
+    setSelectedSourceKey('all');
     setSearchQuery('');
   };
 
-  // Filter subtitles based on language aliases, release keywords, HI status, and query
+  // Filter subtitles based on language aliases, release keywords, HI status, source, and query
   const filteredSubtitles = subtitles.filter(sub => {
     // 1. Language Filter (checks aliases mapping)
     const matchesLang = selectedLangKey === 'all' || (() => {
@@ -347,20 +358,24 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
       if (selectedTypeKey === 'standard') return !sub.hi;
       return true;
     })();
+
+    // 4. Source Filter
+    const matchesSource = selectedSourceKey === 'all' || sub.sources.includes(selectedSourceKey as any);
       
-    // 4. Query text search
+    // 5. Query text search
     const matchesQuery = 
       sub.release_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.uploader.toLowerCase().includes(searchQuery.toLowerCase()) ||
       sub.comment.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return matchesLang && matchesReleaseType && matchesSubtitleType && matchesQuery;
+    return matchesLang && matchesReleaseType && matchesSubtitleType && matchesSource && matchesQuery;
   });
 
   const hasActiveFilters = 
     selectedLangKey !== 'all' || 
     selectedReleaseKey !== 'all' || 
     selectedTypeKey !== 'all' ||
+    selectedSourceKey !== 'all' ||
     searchQuery !== '';
 
   return (
@@ -438,6 +453,18 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
                 onChange={(key) => setSelectedTypeKey(key as 'all' | 'standard' | 'hi')}
               />
             </div>
+
+            {/* Source Selection */}
+            <div className={styles.filterGroup}>
+              <label>Source</label>
+              <CustomDropdown
+                label="Source"
+                selectedLabel={sourceOptions.find(o => o.key === selectedSourceKey)?.label || 'All Sources'}
+                options={sourceOptions}
+                selectedKey={selectedSourceKey}
+                onChange={setSelectedSourceKey}
+              />
+            </div>
           </div>
 
           {/* Reset Action Buttons */}
@@ -486,6 +513,19 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
               <div className={styles.chip}>
                 <span>{getSelectedTypeLabel()}</span>
                 <button onClick={() => setSelectedTypeKey('all')} className={styles.chipRemove} aria-label="Remove subtitle type filter">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Source Chip */}
+            {selectedSourceKey !== 'all' && (
+              <div className={styles.chip}>
+                <span>Source: {selectedSourceKey === 'opensubtitles' ? 'OpenSubtitles' : selectedSourceKey === 'subdl' ? 'SubDL' : 'SubSource'}</span>
+                <button onClick={() => setSelectedSourceKey('all')} className={styles.chipRemove} aria-label="Remove source filter">
                   <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -567,6 +607,14 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
                           </a>
                         </>
                       )}
+                      {sub.pages.opensubtitles && (
+                        <>
+                          {' • '}
+                          <a href={sub.pages.opensubtitles} target="_blank" rel="noopener noreferrer" className={styles.originalLink}>
+                            OpenSubtitles original
+                          </a>
+                        </>
+                      )}
                     </div>
                   </td>
                   <td className="text-center">
@@ -584,10 +632,14 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
                         <span
                           key={src}
                           className={`${styles.sourceBadge} ${
-                            src === 'subdl' ? styles.subdlColor : styles.subsourceColor
+                            src === 'subdl'
+                              ? styles.subdlColor
+                              : src === 'subsource'
+                              ? styles.subsourceColor
+                              : styles.opensubtitlesColor
                           }`}
                         >
-                          {src === 'subdl' ? 'SubDL' : 'SubSource'}
+                          {src === 'subdl' ? 'SubDL' : src === 'subsource' ? 'SubSource' : 'OpenSubtitles'}
                         </span>
                       ))}
                     </div>
@@ -616,6 +668,18 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
                           disabled={!!downloadingId}
                         >
                           {downloadingId === `${sub.id}-subsource` ? '...' : 'SubSource'}
+                        </button>
+                      )}
+                      {sub.downloads.opensubtitles && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownload(e, sub, 'opensubtitles')}
+                          className={`${styles.dlBtn} ${styles.opensubtitlesBtn} ${
+                            downloadingId === `${sub.id}-opensubtitles` ? styles.dlBtnDisabled : ''
+                          }`}
+                          disabled={!!downloadingId}
+                        >
+                          {downloadingId === `${sub.id}-opensubtitles` ? '...' : 'DL (OpenSubtitles)'}
                         </button>
                       )}
                     </div>
