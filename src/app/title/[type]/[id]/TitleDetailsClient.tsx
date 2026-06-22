@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { TMDBShowDetails, getPosterUrl, getBackdropUrl } from '@/services/tmdb';
+import { TMDBShowDetails, getPosterUrl } from '@/services/tmdb';
 import { UnifiedSubtitle } from '@/services/subtitles';
 import SubtitleList from '@/components/SubtitleList';
 import styles from './page.module.css';
@@ -79,7 +79,6 @@ export default function TitleDetailsClient({
   const title = type === 'tv' ? details.name || details.title : details.title;
   const dateStr = type === 'tv' ? details.first_air_date : details.release_date;
   const year = dateStr ? new Date(dateStr).getFullYear().toString() : 'N/A';
-  const backdropUrl = getBackdropUrl(details.backdrop_path, 'w1280');
   const posterUrl = getPosterUrl(details.poster_path, 'w500');
 
   // Check favorites state in localStorage
@@ -201,21 +200,6 @@ export default function TitleDetailsClient({
 
   return (
     <div className={styles.wrapper}>
-      {/* Immersive Hero Header */}
-      {backdropUrl && (
-        <div className={styles.backdrop}>
-          <Image
-            src={backdropUrl}
-            alt={`${title} Backdrop`}
-            fill
-            priority
-            sizes="100vw"
-            style={{ objectFit: 'cover' }}
-          />
-          <div className={styles.backdropOverlay} />
-        </div>
-      )}
-
       <div className={`container ${styles.infoContainer}`}>
         {/* Left Side: Poster */}
         <div className={styles.posterCol}>

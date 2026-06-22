@@ -1,39 +1,39 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
-  /* HSL Color System - Pure Red & Black Theme */
-  --bg-main: 0 0% 0%;         /* Pure black #000000 */
-  --bg-card: 0 0% 6%;         /* Extremely dark grey #0f0f0f */
-  --bg-card-hover: 0 0% 11%;  /* Dark grey hover #1c1c1c */
-  --border-color: 0 0% 16%;   /* Charcoal border #282828 */
-  --foreground: 0 0% 98%;     /* Off-white */
-  --foreground-muted: 0 0% 65%;/* Slate grey */
+  /* HSL Color System - Flat Subtitle Database Portal Theme */
+  --bg-main: 0 0% 3%;         /* #080808 */
+  --bg-card: 0 0% 7%;         /* #111111 */
+  --bg-card-hover: 0 0% 10%;  /* #1a1a1a */
+  --border-color: 0 0% 16%;   /* #2a2a2a */
+  --foreground: 0 0% 96%;     /* #f5f5f5 */
+  --foreground-muted: 0 0% 64%;/* #a3a3a3 */
 
-  --primary: 0 95% 50%;       /* Neon Crimson Red #eb0c0c */
-  --primary-glow: 0 95% 50% / 0.25;
-  --secondary: 354 85% 42%;   /* Dark Neon Crimson/Ruby #c6112c */
-  --secondary-glow: 354 85% 42% / 0.25;
+  --primary: 0 87% 50%;       /* Classic accent red #ef1111 */
+  --primary-glow: 0 87% 50% / 0.1;
+  --secondary: 0 87% 35%;     /* Darker red */
+  --secondary-glow: 0 87% 35% / 0.1;
   
   --success: 142 70% 45%;      /* Emerald green */
   --warning: 38 92% 50%;       /* Amber yellow */
   --error: 0 95% 50%;          /* Crimson red */
   
-  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-display: 'Inter', sans-serif;
   --font-sans: 'Inter', sans-serif;
   
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.6);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.7), 0 2px 4px -2px rgb(0 0 0 / 0.7);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.8), 0 4px 6px -4px rgb(0 0 0 / 0.8);
-  --shadow-glow: 0 0 25px 2px var(--primary-glow);
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.4);
+  --shadow-md: 0 2px 4px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 4px 8px rgb(0 0 0 / 0.6);
+  --shadow-glow: none;
   
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 4px;
+  --radius-md: 4px;
+  --radius-lg: 4px;
   --radius-full: 9999px;
   
-  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 0.12s ease;
+  --transition-normal: 0.2s ease;
+  --transition-slow: 0.3s ease;
 }
 
 /* Reset & Base Styles */

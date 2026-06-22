@@ -519,142 +519,111 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
         Showing {filteredSubtitles.length} of {subtitles.length} subtitles found
       </p>
 
-      {/* Subtitles List */}
+      {/* Subtitles List Table */}
       {filteredSubtitles.length > 0 ? (
-        <div className={styles.list}>
-          {filteredSubtitles.map((sub, idx) => (
-            <div key={idx} className={styles.subtitleCard}>
-              <div className={styles.cardHeader}>
-                <div className={styles.titleInfo}>
-                  <h4 className={styles.releaseName} title={sub.release_name}>
-                    {sub.release_name}
-                  </h4>
-                  <div className={styles.badgeRow}>
+        <div className={styles.tableWrapper}>
+          <table className={styles.subtitlesTable}>
+            <thead>
+              <tr>
+                <th>Language</th>
+                <th>Release Name</th>
+                <th className="text-center">H.I.</th>
+                <th>Source</th>
+                <th>Download</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSubtitles.map((sub, idx) => (
+                <tr key={idx}>
+                  <td className={styles.langCell}>
                     <span className="badge badge-primary">{sub.language}</span>
-                    {sub.hi && (
-                      <span className="badge badge-hi" title="Hearing Impaired / SDH">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="12"
-                          height="12"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <path d="M4 12v-3a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v3"></path>
-                          <path d="M4 14v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"></path>
-                          <circle cx="9" cy="11" r="1"></circle>
-                          <circle cx="15" cy="11" r="1"></circle>
-                        </svg>
-                        SDH
+                  </td>
+                  <td className={styles.releaseNameCell}>
+                    <div className={styles.releaseHeader}>
+                      <span className={styles.releaseNameText} title={sub.release_name}>
+                        {sub.release_name}
                       </span>
+                    </div>
+                    {sub.comment && (
+                      <div className={styles.noteText}>
+                        <strong>Note:</strong> {sub.comment}
+                      </div>
                     )}
-                    
-                    {sub.sources.map(src => (
-                      <span
-                        key={src}
-                        className={`${styles.sourceBadge} ${
-                          src === 'subdl' ? styles.subdlColor : styles.subsourceColor
-                        }`}
-                      >
-                        {src === 'subdl' ? 'SubDL' : 'SubSource'}
+                    <div className={styles.uploaderText}>
+                      Uploaded by: <strong>{sub.uploader}</strong>
+                      {sub.pages.subdl && (
+                        <>
+                          {' • '}
+                          <a href={sub.pages.subdl} target="_blank" rel="noopener noreferrer" className={styles.originalLink}>
+                            SubDL original
+                          </a>
+                        </>
+                      )}
+                      {sub.pages.subsource && (
+                        <>
+                          {' • '}
+                          <a href={sub.pages.subsource} target="_blank" rel="noopener noreferrer" className={styles.originalLink}>
+                            SubSource original
+                          </a>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                  <td className="text-center">
+                    {sub.hi ? (
+                      <span className={styles.hiBadge} title="Hearing Impaired / SDH">
+                        Yes
                       </span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={styles.downloadSection}>
-                  {sub.downloads.subdl && (
-                    <button
-                      type="button"
-                      onClick={(e) => handleDownload(e, sub, 'subdl')}
-                      className={`${styles.downloadBtn} ${styles.subdlBtn} ${
-                        downloadingId === `${sub.id}-subdl` ? styles.downloadBtnDisabled : ''
-                      }`}
-                      title="Download from SubDL"
-                      disabled={!!downloadingId}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                      {downloadingId === `${sub.id}-subdl` ? 'Downloading...' : 'DL (SubDL)'}
-                    </button>
-                  )}
-
-                  {sub.downloads.subsource && (
-                    <button
-                      type="button"
-                      onClick={(e) => handleDownload(e, sub, 'subsource')}
-                      className={`${styles.downloadBtn} ${styles.subsourceBtn} ${
-                        downloadingId === `${sub.id}-subsource` ? styles.downloadBtnDisabled : ''
-                      }`}
-                      title="Download from SubSource"
-                      disabled={!!downloadingId}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                        <polyline points="7 10 12 15 17 10"></polyline>
-                        <line x1="12" y1="15" x2="12" y2="3"></line>
-                      </svg>
-                      {downloadingId === `${sub.id}-subsource` ? 'Downloading...' : 'DL (SubSource)'}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {sub.comment && (
-                <div className={styles.commentContainer}>
-                  <span className={styles.commentLabel}>Note:</span>
-                  <p className={styles.commentText}>{sub.comment}</p>
-                </div>
-              )}
-
-              <div className={styles.cardFooter}>
-                <span className={styles.uploaderName}>
-                  Uploaded by: <strong>{sub.uploader}</strong>
-                </span>
-                
-                {/* External original links */}
-                <div className={styles.originalLinks}>
-                  {sub.pages.subdl && (
-                    <a href={sub.pages.subdl} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
-                      SubDL Page &rarr;
-                    </a>
-                  )}
-                  {sub.pages.subsource && (
-                    <a href={sub.pages.subsource} target="_blank" rel="noopener noreferrer" className={styles.externalLink}>
-                      SubSource Page &rarr;
-                    </a>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+                    ) : (
+                      <span className={styles.mutedText}>-</span>
+                    )}
+                  </td>
+                  <td>
+                    <div className={styles.sourcesWrapper}>
+                      {sub.sources.map(src => (
+                        <span
+                          key={src}
+                          className={`${styles.sourceBadge} ${
+                            src === 'subdl' ? styles.subdlColor : styles.subsourceColor
+                          }`}
+                        >
+                          {src === 'subdl' ? 'SubDL' : 'SubSource'}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td>
+                    <div className={styles.downloadWrapper}>
+                      {sub.downloads.subdl && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownload(e, sub, 'subdl')}
+                          className={`${styles.dlBtn} ${styles.subdlBtn} ${
+                            downloadingId === `${sub.id}-subdl` ? styles.dlBtnDisabled : ''
+                          }`}
+                          disabled={!!downloadingId}
+                        >
+                          {downloadingId === `${sub.id}-subdl` ? '...' : 'SubDL'}
+                        </button>
+                      )}
+                      {sub.downloads.subsource && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDownload(e, sub, 'subsource')}
+                          className={`${styles.dlBtn} ${styles.subsourceBtn} ${
+                            downloadingId === `${sub.id}-subsource` ? styles.dlBtnDisabled : ''
+                          }`}
+                          disabled={!!downloadingId}
+                        >
+                          {downloadingId === `${sub.id}-subsource` ? '...' : 'SubSource'}
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className={styles.noResults}>

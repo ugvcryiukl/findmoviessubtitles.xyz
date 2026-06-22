@@ -2,27 +2,27 @@
   display: flex;
   background: hsl(var(--bg-card));
   border: 1px solid hsl(var(--border-color));
-  border-radius: var(--radius-lg);
-  padding: 8px;
+  border-radius: var(--radius-sm);
+  padding: 6px;
   width: 100%;
   max-width: 720px;
   gap: 8px;
-  box-shadow: var(--shadow-lg), 0 0 0 1px hsl(var(--border-color) / 0.3);
-  transition: all var(--transition-normal);
+  box-shadow: none;
+  transition: border-color var(--transition-fast);
   align-items: center;
 }
 
 .searchForm:focus-within {
   border-color: hsl(var(--primary));
-  box-shadow: var(--shadow-lg), 0 0 25px 2px hsl(var(--primary) / 0.15);
+  box-shadow: none;
 }
 
 .inputWrapper {
   display: flex;
   align-items: center;
   flex: 1;
-  padding-left: 12px;
-  gap: 12px;
+  padding-left: 8px;
+  gap: 10px;
 }
 
 .searchIcon {
@@ -35,10 +35,10 @@
   border: none;
   background: transparent;
   width: 100%;
-  padding: 10px 0;
+  padding: 8px 0;
   outline: none;
   color: hsl(var(--foreground));
-  font-size: 1.05rem;
+  font-size: 1rem;
 }
 
 .searchInput::placeholder {
@@ -58,13 +58,13 @@
 }
 
 .typeSelect {
-  background: hsl(var(--border-color) / 0.4);
+  background: hsl(var(--bg-main));
   border: 1px solid hsl(var(--border-color));
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   padding: 8px 32px 8px 12px;
   cursor: pointer;
   outline: none;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: hsl(var(--foreground));
   appearance: none;
@@ -72,7 +72,7 @@
 }
 
 .typeSelect:hover {
-  background: hsl(var(--border-color) / 0.7);
+  background: hsl(var(--bg-card-hover));
   border-color: hsl(var(--foreground-muted) / 0.4);
 }
 
@@ -86,26 +86,25 @@
 }
 
 .submitBtn {
-  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--secondary)) 100%);
+  background: hsl(var(--primary));
   color: #ffffff;
   border: none;
-  border-radius: var(--radius-md);
-  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  padding: 8px 20px;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
-  box-shadow: 0 4px 12px hsl(var(--primary) / 0.2);
+  transition: background-color var(--transition-fast);
+  box-shadow: none;
 }
 
 .submitBtn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px hsl(var(--primary) / 0.35);
-  opacity: 0.95;
+  background: hsl(var(--primary-hover));
+  opacity: 1;
 }
 
 .submitBtn:active {
-  transform: translateY(0);
+  background: hsl(var(--secondary));
 }
 
 @media (max-width: 640px) {

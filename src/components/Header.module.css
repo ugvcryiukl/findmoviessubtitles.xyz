@@ -1,9 +1,7 @@
 .header {
-  height: 72px;
-  background: hsl(var(--bg-main) / 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid hsl(var(--border-color) / 0.5);
+  height: 60px;
+  background: hsl(var(--bg-card));
+  border-bottom: 1px solid hsl(var(--border-color));
   position: sticky;
   top: 0;
   left: 0;
