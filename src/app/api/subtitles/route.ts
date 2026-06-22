@@ -8,6 +8,7 @@ export async function GET(request: Request) {
   const seasonStr = searchParams.get('season');
   const episodeStr = searchParams.get('episode');
   const languagesStr = searchParams.get('languages') || 'english';
+  const fullSeasonStr = searchParams.get('fullSeason');
 
   if (!tmdbIdStr || !type) {
     return NextResponse.json({ error: 'Missing parameters "id" or "type"' }, { status: 400 });
@@ -16,14 +17,16 @@ export async function GET(request: Request) {
   const tmdbId = parseInt(tmdbIdStr, 10);
   const season = seasonStr ? parseInt(seasonStr, 10) : undefined;
   const episode = episodeStr ? parseInt(episodeStr, 10) : undefined;
+  const fullSeason = fullSeasonStr === 'true';
 
   try {
     const result = await fetchUnifiedSubtitles({
       tmdbId,
       type,
       season,
-      episode,
-      languagesStr
+      episode: fullSeason ? undefined : episode,
+      languagesStr,
+      fullSeason
     });
 
     return NextResponse.json({
@@ -31,7 +34,8 @@ export async function GET(request: Request) {
       imdbId: result.imdbId,
       type,
       season,
-      episode,
+      episode: fullSeason ? undefined : episode,
+      fullSeason,
       subtitles: result.subtitles
     });
   } catch (error) {

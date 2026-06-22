@@ -13,6 +13,8 @@ interface SubtitleListProps {
   subtitles: UnifiedSubtitle[];
   mediaTitle: string;
   initialLanguage?: string;
+  fullSeason?: boolean;
+  onToggleFullSeason?: (val: boolean) => void;
 }
 
 interface DropdownProps {
@@ -203,7 +205,13 @@ function createHistoryItem(
   };
 }
 
-export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }: SubtitleListProps) {
+export default function SubtitleList({
+  subtitles,
+  mediaTitle,
+  initialLanguage,
+  fullSeason = false,
+  onToggleFullSeason,
+}: SubtitleListProps) {
   const [selectedLangKey, setSelectedLangKey] = useState<string>(() => {
     if (initialLanguage) {
       const matched = SUBTITLE_LANGUAGES.find(
@@ -283,21 +291,35 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
         }
       }
 
-      if (!filename) {
-        const cleanTitle = mediaTitle.replace(/[^a-zA-Z0-9]/g, '_').replace(/__+/g, '_').toLowerCase();
-        const cleanLang = subtitle.language.toLowerCase();
-        let baseName = subtitle.release_name;
-        baseName = baseName.replace(/\.(zip|rar|srt|txt)$/i, '');
-        const cleanRelease = baseName.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/__+/g, '_');
-        const ext = source === 'opensubtitles' ? 'srt' : 'zip';
-        filename = `${cleanTitle}_${cleanLang}_${cleanRelease}_[${source}].${ext}`;
+      // Always format the filename to be clean, consistent, and contain the source tag
+      const cleanTitle = mediaTitle.replace(/[^a-zA-Z0-9]/g, '_').replace(/__+/g, '_').toLowerCase();
+      const cleanLang = subtitle.language.toLowerCase();
+      
+      let baseName = filename || subtitle.release_name;
+      // Remove any existing extension
+      baseName = baseName.replace(/\.(zip|rar|srt|txt|vtt)$/i, '');
+      // Remove any existing source tags to avoid duplicates
+      baseName = baseName.replace(/_\[(subdl|subsource|opensubtitles)\]/g, '');
+      baseName = baseName.replace(/\[(subdl|subsource|opensubtitles)\]/g, '');
+      
+      const cleanRelease = baseName.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/__+/g, '_');
+      
+      // Determine extension based on source, full-season status, or content-type
+      const contentType = res.headers.get('Content-Type') || '';
+      const isActuallyZip = contentType === 'application/zip' || contentType.includes('zip') || (filename && filename.toLowerCase().endsWith('.zip'));
+      
+      let ext = 'zip';
+      if (source === 'opensubtitles') {
+        ext = (subtitle.fullSeason || isActuallyZip) ? 'zip' : 'srt';
+      } else {
+        if (!subtitle.fullSeason && !isActuallyZip && (filename.endsWith('.srt') || filename.endsWith('.vtt'))) {
+          ext = filename.endsWith('.vtt') ? 'vtt' : 'srt';
+        } else {
+          ext = 'zip';
+        }
       }
-
-      // Check if it's zipped or raw srt/vtt to prevent corrupt naming
-      const isZip = res.headers.get('Content-Type') === 'application/zip' || filename.endsWith('.zip');
-      if (!isZip && !filename.endsWith('.srt') && !filename.endsWith('.vtt')) {
-        filename = `${filename}.zip`;
-      }
+      
+      filename = `${cleanTitle}_${cleanLang}_${cleanRelease}_[${source}].${ext}`;
 
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -360,7 +382,7 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
     })();
 
     // 4. Source Filter
-    const matchesSource = selectedSourceKey === 'all' || sub.sources.includes(selectedSourceKey as any);
+    const matchesSource = selectedSourceKey === 'all' || sub.sources.includes(selectedSourceKey as 'subdl' | 'subsource' | 'opensubtitles');
       
     // 5. Query text search
     const matchesQuery = 
@@ -566,6 +588,8 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
             <thead>
               <tr>
                 <th>Language</th>
+                <th>Type</th>
+                <th>Season</th>
                 <th>Release Name</th>
                 <th className="text-center">H.I.</th>
                 <th>Source</th>
@@ -577,6 +601,22 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
                 <tr key={idx}>
                   <td className={styles.langCell}>
                     <span className="badge badge-primary">{sub.language}</span>
+                  </td>
+                  <td className={styles.typeCell}>
+                    {sub.fullSeason ? (
+                      <span className={styles.fullSeasonBadge}>Full Season</span>
+                    ) : sub.season !== null && sub.season !== undefined ? (
+                      <span className={styles.typeText}>Episode</span>
+                    ) : (
+                      <span className={styles.typeText}>Movie</span>
+                    )}
+                  </td>
+                  <td className={styles.seasonCell}>
+                    {sub.season !== null && sub.season !== undefined ? (
+                      <span className={styles.seasonText}>Season {sub.season}</span>
+                    ) : (
+                      <span className={styles.mutedText}>-</span>
+                    )}
                   </td>
                   <td className={styles.releaseNameCell}>
                     <div className={styles.releaseHeader}>
@@ -689,6 +729,43 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
             </tbody>
           </table>
         </div>
+      ) : subtitles.length === 0 ? (
+        <div className={styles.noResults}>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="48"
+            height="48"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="8" x2="12" y2="12"></line>
+            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+          </svg>
+          {fullSeason ? (
+            <>
+              <h3>No full season subtitles found</h3>
+              <p>No full season subtitles found for this season. Try episode subtitles instead.</p>
+              {onToggleFullSeason && (
+                <button
+                  onClick={() => onToggleFullSeason(false)}
+                  className={styles.toggleBackBtn}
+                >
+                  Show episode subtitles
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <h3>No subtitles found</h3>
+              <p>No subtitles were found for this content. Try another language or provider.</p>
+            </>
+          )}
+        </div>
       ) : (
         <div className={styles.noResults}>
           <svg
@@ -707,6 +784,11 @@ export default function SubtitleList({ subtitles, mediaTitle, initialLanguage }:
           </svg>
           <h3>No subtitles match your filters</h3>
           <p>Try clearing your filters or search query to see more subtitles</p>
+          {hasActiveFilters && (
+            <button onClick={clearAllFilters} className={styles.toggleBackBtn}>
+              Reset Filters
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -21,6 +21,38 @@ export interface UnifiedSubtitle {
     subsource?: string;
     opensubtitles?: string;
   };
+  fullSeason?: boolean;
+  season?: number | null;
+  episode?: number | null;
+  episodeFrom?: number | null;
+  episodeEnd?: number | null;
+  unpackFiles?: unknown[] | null;
+}
+
+// Detection helper for full season subtitles
+export function isFullSeasonSubtitle(
+  subtitle: { release_name?: string; fullSeason?: boolean; season?: number | null },
+  type?: 'movie' | 'tv'
+): boolean {
+  if (type === 'movie') return false;
+  if (subtitle.fullSeason === true) return true;
+  const name = subtitle.release_name || (subtitle as { releaseName?: string }).releaseName || "";
+  const text = name.toLowerCase();
+
+  // Do not mark normal episode subtitles like S01E01 as full season
+  const hasEpisodeTag = /\be\d{1,3}\b/.test(text) || /\bep\d{1,3}\b/.test(text) || /\bepisode\s*\d{1,3}\b/.test(text);
+  if (hasEpisodeTag) {
+    return false;
+  }
+
+  return (
+    text.includes("full season") ||
+    text.includes("complete season") ||
+    text.includes("season pack") ||
+    text.includes("complete") ||
+    /\bs\d{1,2}\b/.test(text) ||
+    /season\s*\d+/i.test(text)
+  );
 }
 
 // Helper to normalize release names for matching
@@ -50,13 +82,15 @@ export async function fetchUnifiedSubtitles({
   type,
   season,
   episode,
-  languagesStr = 'english,spanish,french,arabic,persian,vietnamese'
+  languagesStr = 'english,spanish,french,arabic,persian,vietnamese',
+  fullSeason = false
 }: {
   tmdbId: number;
   type: 'movie' | 'tv';
   season?: number;
   episode?: number;
   languagesStr?: string;
+  fullSeason?: boolean;
 }): Promise<{
   title: string;
   imdbId?: string;
@@ -72,7 +106,7 @@ export async function fetchUnifiedSubtitles({
   const imdbId = details.external_ids?.imdb_id;
   const languages = languagesStr.split(',').map(l => l.trim().toLowerCase());
 
-  console.log(`[fetchUnifiedSubtitles] Searching subtitles for ${title} (IMDb: ${imdbId || 'None'}, TMDB: ${tmdbId})`);
+  console.log(`[fetchUnifiedSubtitles] Searching subtitles for ${title} (IMDb: ${imdbId || 'None'}, TMDB: ${tmdbId}, Full Season: ${fullSeason})`);
 
   // 2. Query SubDL, SubSource & OpenSubtitles simultaneously
   const subdlPromise = fetchSubdlSubtitles({
@@ -82,7 +116,9 @@ export async function fetchUnifiedSubtitles({
     languages: languagesStr,
     type,
     season_number: season,
-    episode_number: episode
+    episode_number: fullSeason ? undefined : episode,
+    full_season: fullSeason ? 1 : undefined,
+    unpack: fullSeason ? 1 : undefined
   }).catch(err => {
     console.error('Error fetching SubDL subtitles:', err);
     return [];
@@ -99,7 +135,7 @@ export async function fetchUnifiedSubtitles({
       // Query subsource for all languages in parallel
       const subsourceResults = await Promise.all(
         languages.map(lang =>
-          fetchSubsourceSubtitles(subsourceMovieId, lang, season, episode).catch(err => {
+          fetchSubsourceSubtitles(subsourceMovieId, lang, season, fullSeason ? undefined : episode).catch(err => {
             console.error(`SubSource fetch failed for lang ${lang}:`, err);
             return [];
           })
@@ -120,7 +156,7 @@ export async function fetchUnifiedSubtitles({
     languages: languagesStr,
     type,
     season_number: season,
-    episode_number: episode
+    episode_number: fullSeason ? undefined : episode
   }).catch(err => {
     console.error('Error fetching OpenSubtitles subtitles:', err);
     return [];
@@ -144,7 +180,14 @@ export async function fetchUnifiedSubtitles({
     hi: boolean,
     source: 'subdl' | 'subsource' | 'opensubtitles',
     downloadUrl: string,
-    pageUrl: string
+    pageUrl: string,
+    extraProps?: {
+      fullSeason?: boolean;
+      season?: number | null;
+      episode?: number | null;
+      episodeFrom?: number | null;
+      episodeEnd?: number | null;
+    }
   ) => {
     const normalizedRelease = normalizeReleaseName(releaseName);
     const normalizedLang = lang.trim().toLowerCase();
@@ -189,6 +232,14 @@ export async function fetchUnifiedSubtitles({
       if (hi) {
         existing.hi = true;
       }
+
+      // Merge season/episode info
+      if (extraProps?.fullSeason) {
+        existing.fullSeason = true;
+      }
+      if (extraProps?.season !== undefined && extraProps.season !== null && !existing.season) {
+        existing.season = extraProps.season;
+      }
     } else {
       const unifiedSub: UnifiedSubtitle = {
         id: key,
@@ -199,7 +250,13 @@ export async function fetchUnifiedSubtitles({
         hi,
         sources: [source],
         downloads: {},
-        pages: {}
+        pages: {},
+        fullSeason: extraProps?.fullSeason || false,
+        season: extraProps?.season !== undefined ? extraProps.season : null,
+        episode: extraProps?.episode !== undefined ? extraProps.episode : null,
+        episodeFrom: extraProps?.episodeFrom !== undefined ? extraProps.episodeFrom : null,
+        episodeEnd: extraProps?.episodeEnd !== undefined ? extraProps.episodeEnd : null,
+        unpackFiles: null
       };
 
       if (source === 'subdl') {
@@ -231,7 +288,14 @@ export async function fetchUnifiedSubtitles({
       sub.hi,
       'subdl',
       sub.download_url,
-      sub.page_url
+      sub.page_url,
+      {
+        fullSeason: sub.fullSeason,
+        season: sub.season || season || null,
+        episode: sub.episode || episode || null,
+        episodeFrom: sub.episode_from || null,
+        episodeEnd: sub.episode_end || null
+      }
     );
   }
 
@@ -245,14 +309,18 @@ export async function fetchUnifiedSubtitles({
       sub.hearingImpaired,
       'subsource',
       String(sub.subtitleId),
-      `https://subsource.net${sub.link}`
+      `https://subsource.net${sub.link}`,
+      {
+        season: season || null,
+        episode: episode || null
+      }
     );
   }
 
   // Process OpenSubtitles subtitles
   for (const sub of opensubtitlesSubs) {
-    const rawComment = sub.raw && typeof sub.raw === 'object' && (sub.raw as any).attributes?.comments
-      ? (sub.raw as any).attributes.comments
+    const rawComment = sub.raw && typeof sub.raw === 'object' && (sub.raw as { attributes?: { comments?: string } }).attributes?.comments
+      ? (sub.raw as { attributes?: { comments?: string } }).attributes?.comments || ''
       : '';
     mergeSubtitle(
       sub.releaseName,
@@ -262,11 +330,25 @@ export async function fetchUnifiedSubtitles({
       sub.hi,
       'opensubtitles',
       String(sub.fileId),
-      sub.pageUrl || ''
+      sub.pageUrl || '',
+      {
+        season: season || null,
+        episode: episode || null
+      }
     );
   }
 
-  const mergedList = Array.from(subtitleMap.values());
+  let mergedList = Array.from(subtitleMap.values());
+
+  // Populate fullSeason flag using isFullSeasonSubtitle helper
+  for (const sub of mergedList) {
+    sub.fullSeason = isFullSeasonSubtitle(sub, type);
+  }
+
+  if (fullSeason) {
+    // Keep only full season subtitles
+    mergedList = mergedList.filter(sub => sub.fullSeason);
+  }
 
   // Sort: Desired languages in search order first, then alphabetically, then non-HI first
   const langPriorityMap = new Map(languages.map((l, index) => [l, index]));

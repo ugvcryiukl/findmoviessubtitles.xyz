@@ -17,6 +17,8 @@ export interface SubdlQueryParams {
   type?: 'movie' | 'tv';
   season_number?: number;
   episode_number?: number;
+  full_season?: number; // 1 for full season subtitles
+  unpack?: number;      // 1 to unpack season zip archive
 }
 
 export interface SubdlSubtitleItem {
@@ -30,6 +32,9 @@ export interface SubdlSubtitleItem {
   season?: number;
   episode?: number;
   source: 'subdl';
+  fullSeason?: boolean;
+  episode_from?: number;
+  episode_end?: number;
 }
 
 export interface RawSubdlSubtitle {
@@ -81,7 +86,12 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
 
   if (params.type === 'tv') {
     if (params.season_number !== undefined) queryParams.append('season_number', String(params.season_number));
-    if (params.episode_number !== undefined) queryParams.append('episode_number', String(params.episode_number));
+    if (params.full_season === 1) {
+      queryParams.append('full_season', '1');
+      queryParams.append('unpack', '1');
+    } else {
+      if (params.episode_number !== undefined) queryParams.append('episode_number', String(params.episode_number));
+    }
   }
 
   try {
@@ -112,7 +122,7 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
     return rawSubtitles
       .filter(item => {
         // Renders season packs check if needed
-        if (params.type === 'tv' && item.episode_from !== item.episode_end) {
+        if (params.type === 'tv' && params.full_season !== 1 && item.episode_from !== item.episode_end) {
           // Ignore packs if searching for a single episode
           return false;
         }
@@ -131,10 +141,9 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
           ? rawPage
           : `https://subdl.com${rawPage.startsWith('/') ? '' : '/'}${rawPage}`;
 
-        // Get uploader name
+        const isFull = params.full_season === 1 || (item.episode_from !== undefined && item.episode_end !== undefined && item.episode_from !== item.episode_end);
+
         const author = item.author || 'Unknown';
-        
-        // Get release names list
         const releases = item.releases || [];
         const release_name = releases.length > 0 ? releases[0] : item.name || 'Unknown Release';
 
@@ -148,7 +157,10 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
           page_url,
           season: item.season,
           episode: item.episode,
-          source: 'subdl'
+          source: 'subdl',
+          fullSeason: isFull,
+          episode_from: item.episode_from,
+          episode_end: item.episode_end
         };
       });
   } catch (error) {

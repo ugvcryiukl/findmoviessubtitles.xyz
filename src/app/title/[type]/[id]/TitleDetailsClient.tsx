@@ -72,6 +72,7 @@ export default function TitleDetailsClient({
   const [subtitles, setSubtitles] = useState<UnifiedSubtitle[]>(initialSubtitles);
   const [loadingSubtitles, setLoadingSubtitles] = useState(false);
   const [subtitlesError, setSubtitlesError] = useState<string | null>(null);
+  const [fullSeason, setFullSeason] = useState(false);
 
   const isInitialLoadRef = useRef(true);
   const isInitialEpisodesRef = useRef(true);
@@ -155,7 +156,8 @@ export default function TitleDetailsClient({
   // Fetch subtitles on season/episode selection change
   useEffect(() => {
     if (!id) return;
-    if (type === 'tv' && (!selectedSeason || !selectedEpisode)) return;
+    if (type === 'tv' && !selectedSeason) return;
+    if (type === 'tv' && !fullSeason && !selectedEpisode) return;
 
     // Skip fetch for the initial load if we already have initial subtitles
     if (isInitialLoadRef.current) {
@@ -171,7 +173,11 @@ export default function TitleDetailsClient({
       try {
         let url = `/api/subtitles?id=${id}&type=${type}&languages=english,spanish,french,arabic,persian,vietnamese`;
         if (type === 'tv') {
-          url += `&season=${selectedSeason}&episode=${selectedEpisode}`;
+          if (fullSeason) {
+            url += `&season=${selectedSeason}&fullSeason=true`;
+          } else {
+            url += `&season=${selectedSeason}&episode=${selectedEpisode}`;
+          }
         }
         
         const res = await fetch(url);
@@ -191,11 +197,13 @@ export default function TitleDetailsClient({
       }
     }
     loadSubtitles();
-  }, [id, type, selectedSeason, selectedEpisode, initialSubtitles]);
+  }, [id, type, selectedSeason, selectedEpisode, fullSeason, initialSubtitles]);
 
   // Label for local storage history tracking in SubtitleList
   const mediaLabel = type === 'tv' 
-    ? `${title} - S${String(selectedSeason).padStart(2, '0')}E${String(selectedEpisode).padStart(2, '0')}`
+    ? (fullSeason 
+        ? `${title} - S${String(selectedSeason).padStart(2, '0')} (Full Season)`
+        : `${title} - S${String(selectedSeason).padStart(2, '0')}E${String(selectedEpisode).padStart(2, '0')}`)
     : title;
 
   return (
@@ -298,14 +306,14 @@ export default function TitleDetailsClient({
                 </div>
 
                 {/* Episode Selector */}
-                <div className={styles.selectorGroup}>
+                <div className={`${styles.selectorGroup} ${fullSeason ? styles.disabledSelector : ''}`}>
                   <label htmlFor="episode-select">Episode</label>
                   <select
                     id="episode-select"
                     value={selectedEpisode}
                     onChange={(e) => setSelectedEpisode(parseInt(e.target.value, 10))}
                     className={styles.select}
-                    disabled={loadingEpisodes}
+                    disabled={loadingEpisodes || fullSeason}
                   >
                     {episodes.map((ep) => (
                       <option key={ep.episode_number} value={ep.episode_number}>
@@ -316,8 +324,26 @@ export default function TitleDetailsClient({
                 </div>
               </div>
 
+              {/* Full Season Toggle Checkbox */}
+              <div className={styles.fullSeasonToggleRow}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={fullSeason}
+                    onChange={(e) => setFullSeason(e.target.checked)}
+                    className={styles.checkbox}
+                  />
+                  <span>Full season subtitles</span>
+                </label>
+                {fullSeason && (
+                  <span className={styles.helperText}>
+                    Episode selection is disabled for full season search.
+                  </span>
+                )}
+              </div>
+
               {/* Episode Description */}
-              {episodes.length > 0 && (
+              {!fullSeason && episodes.length > 0 && (
                 <div className={styles.episodeDetail}>
                   {episodes.find((ep) => ep.episode_number === selectedEpisode)?.overview && (
                     <p>
@@ -332,8 +358,11 @@ export default function TitleDetailsClient({
 
           {/* Subtitles List area */}
           <div className={styles.subtitlesHeader}>
-            <h2>Available Subtitles</h2>
-            <p>Merged and deduplicated from SubDL and SubSource</p>
+            <div className={styles.subtitlesTitleRow}>
+              <h2>{fullSeason ? 'Available Full Season Subtitles' : 'Available Subtitles'}</h2>
+              {fullSeason && <span className={styles.titleBadge}>Full Season</span>}
+            </div>
+            <p>Merged and deduplicated from SubDL, SubSource and OpenSubtitles</p>
           </div>
 
           {loadingSubtitles ? (
@@ -365,7 +394,13 @@ export default function TitleDetailsClient({
               <span>{subtitlesError}</span>
             </div>
           ) : (
-            <SubtitleList subtitles={subtitles} mediaTitle={mediaLabel} initialLanguage={initialLanguage || undefined} />
+            <SubtitleList
+              subtitles={subtitles}
+              mediaTitle={mediaLabel}
+              initialLanguage={initialLanguage || undefined}
+              fullSeason={fullSeason}
+              onToggleFullSeason={setFullSeason}
+            />
           )}
         </div>
       </div>
