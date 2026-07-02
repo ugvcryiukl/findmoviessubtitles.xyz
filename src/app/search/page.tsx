@@ -4,13 +4,13 @@ import SearchResultsClient from './SearchResultsClient';
 import { searchMedia } from '@/services/tmdb';
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string; type?: string; year?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; year?: string; languages?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
-  const { q } = await searchParams;
+  const { q, languages } = await searchParams;
   
-  if (q) {
+  if (q && q !== 'popular') {
     return {
       title: `Search results for "${q}" | Find Subtitles`,
       description: `Find movie and TV show subtitles matching "${q}". Download subtitles in SRT, ZIP format for all languages.`,
@@ -24,15 +24,28 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
     };
   }
 
+  // q is falsy or is "popular" -> allow indexation for sitemap landing page mapping
+  const titleText = q === 'popular'
+    ? `Popular ${languages ? languages.charAt(0).toUpperCase() + languages.slice(1) : ''} Movie & TV Subtitles | Find Subtitles`
+    : 'Search Movies & TV Shows Subtitles | Find Subtitles';
+  const descText = q === 'popular'
+    ? `Browse and download free SRT & ZIP subtitles for popular movies and TV series in ${languages || 'multiple languages'}.`
+    : 'Search and find subtitles for your favorite movies and TV shows in multiple languages.';
+  
+  let canonicalPath = '/search';
+  if (q === 'popular') {
+    canonicalPath = languages ? `/search?q=popular&languages=${encodeURIComponent(languages)}` : '/search?q=popular';
+  }
+
   return {
-    title: 'Search Movies & TV Shows Subtitles | Find Subtitles',
-    description: 'Search and find subtitles for your favorite movies and TV shows in multiple languages.',
+    title: titleText,
+    description: descText,
     robots: {
       index: true,
       follow: true,
     },
     alternates: {
-      canonical: '/search',
+      canonical: canonicalPath,
     },
   };
 }

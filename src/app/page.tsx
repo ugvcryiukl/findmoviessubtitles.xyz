@@ -8,8 +8,8 @@ import { SITE_CONFIG } from '@/lib/config/site';
 import styles from './page.module.css';
 
 export const metadata: Metadata = {
-  title: `${SITE_CONFIG.name} - Download Movie & TV Subtitles`,
-  description: SITE_CONFIG.description,
+  title: `Download Movie & TV Subtitles | SRT & ZIP | ${SITE_CONFIG.name}`,
+  description: `Search and download free SRT and ZIP subtitles for popular movies and TV shows in English, Arabic, Spanish, French, Persian, Vietnamese, and more. Compatible with VLC, Plex, and smart TVs.`,
   alternates: {
     canonical: '/'
   }
@@ -85,6 +85,8 @@ export default async function Home() {
 
       {/* Compact Search Portal Header */}
       <section className={`${styles.searchPortal} animate-fade-in`}>
+        <h1 className={styles.portalTitle}>Find Movie & TV Subtitles</h1>
+        <p className={styles.portalSubtitle}>Download Free SRT & ZIP Subtitles in Multiple Languages</p>
         <div className={styles.searchContainer}>
           <Suspense fallback={<div className="spinner" />}>
             <SearchBox />
@@ -177,6 +179,52 @@ export default async function Home() {
               <MediaCard key={item.id} media={item} />
             ))}
           </Suspense>
+        </div>
+      </section>
+
+      {/* SEO Content Section */}
+      <section className={styles.seoSection}>
+        <div className={styles.seoCard}>
+          <h2>Download Subtitles for Movies & TV Shows</h2>
+          <p>
+            Welcome to <strong>Find Movies Subtitles</strong>, your ultimate destination for high-quality subtitle downloads. We offer a fast, reliable, and completely free search portal to download subtitles in multiple languages including <strong>English, Arabic, French, Spanish, Farsi, and Vietnamese</strong>.
+          </p>
+          <p style={{ marginTop: '10px' }}>
+            Whether you are looking for subtitles for popular cinematic releases, indie movies, or the latest TV show seasons, we index and merge links from top repositories like <strong>SubDL, SubSource, and OpenSubtitles</strong>. 
+          </p>
+          <p style={{ marginTop: '10px' }}>
+            Our subtitle database covers all major release formats: <strong>BluRay, WebRip, WEBDL, HDRip, DVDRip, and HDTV</strong>. You can find subtitles synchronized for 720p, 1080p, and 4K UHD resolutions. Find Hearing Impaired (SDH) subtitles and season pack zip downloads with a single click.
+          </p>
+        </div>
+
+        <div className={styles.faqCard}>
+          <h2>Frequently Asked Questions</h2>
+          <div className={styles.faqList}>
+            <details className={styles.faqItem}>
+              <summary>Is downloading subtitles from this portal free?</summary>
+              <div className={styles.faqAnswer}>
+                <p>Yes, Find Movies Subtitles is 100% free to use. You can search, browse, and download SRT or ZIP files without creating an account or paying any fees.</p>
+              </div>
+            </details>
+            <details className={styles.faqItem}>
+              <summary>How do I load SRT subtitles in VLC or other players?</summary>
+              <div className={styles.faqAnswer}>
+                <p>Simply download the <code>.srt</code> file for your language. For most media players like VLC or MPC-HC, you can drag and drop the subtitle file directly onto the playing video, or rename the subtitle file to match the video file name exactly and keep them in the same folder.</p>
+              </div>
+            </details>
+            <details className={styles.faqItem}>
+              <summary>What is a Full Season subtitle pack?</summary>
+              <div className={styles.faqAnswer}>
+                <p>A Full Season pack is a compressed ZIP archive containing subtitle files for all episodes of a specific TV series season. This is perfect for binge-watching your favorite shows without downloading files episode-by-episode.</p>
+              </div>
+            </details>
+            <details className={styles.faqItem}>
+              <summary>Can I search subtitles using IMDb or TMDB IDs?</summary>
+              <div className={styles.faqAnswer}>
+                <p>Yes! Our search bar supports text queries as well as direct IMDb IDs (e.g., <code>tt0903747</code>) and TMDB IDs to ensure you find the exact movie or series you are looking for.</p>
+              </div>
+            </details>
+          </div>
         </div>
       </section>
 

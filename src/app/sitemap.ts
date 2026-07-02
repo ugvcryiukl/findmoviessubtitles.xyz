@@ -1,5 +1,11 @@
 import { MetadataRoute } from 'next';
-import { getTrendingMedia } from '@/services/tmdb';
+import { 
+  getPopularMovies, 
+  getPopularTVShows, 
+  getTopRatedMovies, 
+  getTopRatedTVShows, 
+  getMockPopularList 
+} from '@/services/tmdb';
 import { SITE_CONFIG } from '@/lib/config/site';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -52,19 +58,52 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  // 4. Dynamic Trending Title Pages
-  let trendingPages: MetadataRoute.Sitemap = [];
+  // 4. Dynamic Popular & Top Rated Title Pages
+  let dynamicPages: MetadataRoute.Sitemap = [];
   try {
-    const trendingMedia = await getTrendingMedia();
-    trendingPages = (trendingMedia || []).map(item => ({
+    const promises = [];
+    // Fetch 5 pages of popular/top rated movies and TV shows from TMDB in parallel
+    for (let p = 1; p <= 5; p++) {
+      promises.push(getPopularMovies(p));
+      promises.push(getPopularTVShows(p));
+      promises.push(getTopRatedMovies(p));
+      promises.push(getTopRatedTVShows(p));
+    }
+    const results = await Promise.all(promises);
+    const mediaItems = results.flat();
+    
+    // Deduplicate by media_type and id
+    const seen = new Set<string>();
+    const uniqueItems = mediaItems.filter(item => {
+      if (!item || !item.id) return false;
+      const key = `${item.media_type}-${item.id}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    
+    if (uniqueItems.length > 0) {
+      dynamicPages = uniqueItems.map(item => ({
+        url: `${baseUrl}/title/${item.media_type}/${item.id}`,
+        lastModified: new Date(),
+        changeFrequency: 'weekly' as const,
+        priority: 0.7,
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to generate dynamic sitemap pages:', err);
+  }
+
+  // Fallback to top mock popular titles if TMDB query failed or returned empty results
+  if (dynamicPages.length === 0) {
+    const mockList = getMockPopularList();
+    dynamicPages = mockList.map(item => ({
       url: `${baseUrl}/title/${item.media_type}/${item.id}`,
       lastModified: new Date(),
       changeFrequency: 'weekly' as const,
       priority: 0.7,
     }));
-  } catch (err) {
-    console.error('Failed to generate trending pages for sitemap:', err);
   }
 
-  return [...staticPages, ...languagePages, ...categoryPages, ...trendingPages];
+  return [...staticPages, ...languagePages, ...categoryPages, ...dynamicPages];
 }
