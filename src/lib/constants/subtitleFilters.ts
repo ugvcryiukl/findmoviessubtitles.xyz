@@ -37,7 +37,7 @@ export const SUBTITLE_TYPES: SubtitleTypeOption[] = [
 // Mapped full language list, keeping popular languages at the top
 export const SUBTITLE_LANGUAGES: LanguageOption[] = [
   { label: 'English', subdlCode: 'EN', subsourceCode: 'en', aliases: ['english', 'en', 'eng'] },
-  { label: 'Farsi/Persian', subdlCode: 'FA', subsourceCode: 'fa', aliases: ['farsi', 'persian', 'fa', 'per', 'fas'] },
+  { label: 'Farsi/Persian', subdlCode: 'FA', subsourceCode: 'fa', aliases: ['farsi', 'persian', 'fa', 'per', 'fas', 'farsi_persian', 'farsi persian'] },
   { label: 'Arabic', subdlCode: 'AR', subsourceCode: 'ar', aliases: ['arabic', 'ar', 'ara'] },
   { label: 'French', subdlCode: 'FR', subsourceCode: 'fr', aliases: ['french', 'fr', 'fra', 'fre'] },
   { label: 'Spanish', subdlCode: 'ES', subsourceCode: 'es', aliases: ['spanish', 'es', 'spa', 'esp'] },
@@ -58,7 +58,7 @@ export const SUBTITLE_LANGUAGES: LanguageOption[] = [
   { label: 'Bengali', subdlCode: 'BN', subsourceCode: 'bn', aliases: ['bengali', 'bn', 'ben'] },
   { label: 'Big 5 code', subdlCode: 'ZH', subsourceCode: 'zh', aliases: ['big 5 code', 'big5'] },
   { label: 'Bosnian', subdlCode: 'BS', subsourceCode: 'bs', aliases: ['bosnian', 'bs', 'bos'] },
-  { label: 'Brazilian Portuguese', subdlCode: 'PT-BR', subsourceCode: 'pt-br', aliases: ['brazilian portuguese', 'portuguese (brazil)', 'pt-br'] },
+  { label: 'Brazilian Portuguese', subdlCode: 'PT-BR', subsourceCode: 'pt-br', aliases: ['brazilian portuguese', 'brazilian_portuguese', 'portuguese (brazil)', 'pt-br'] },
   { label: 'Breton', subdlCode: 'BR', subsourceCode: 'br', aliases: ['breton', 'br', 'bre'] },
   { label: 'Bulgarian', subdlCode: 'BG', subsourceCode: 'bg', aliases: ['bulgarian', 'bg', 'bul'] },
   { label: 'Burmese', subdlCode: 'MY', subsourceCode: 'my', aliases: ['burmese', 'my', 'mya', 'bur'] },

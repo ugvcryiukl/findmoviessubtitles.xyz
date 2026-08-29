@@ -7,7 +7,8 @@ export async function GET(request: Request) {
   const type = searchParams.get('type') as 'movie' | 'tv';
   const seasonStr = searchParams.get('season');
   const episodeStr = searchParams.get('episode');
-  const languagesStr = searchParams.get('languages') || 'english';
+  const languagesParam = searchParams.get('languages');
+  const languagesStr = languagesParam && languagesParam !== 'all' ? languagesParam : undefined;
   const fullSeasonStr = searchParams.get('fullSeason');
 
   if (!tmdbIdStr || !type) {

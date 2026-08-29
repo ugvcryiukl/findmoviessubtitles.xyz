@@ -106,7 +106,7 @@ export default async function Page({ params, searchParams }: TitlePageProps) {
       type,
       season: type === 'tv' ? 1 : undefined,
       episode: type === 'tv' ? 1 : undefined,
-      languagesStr: typeof languages === 'string' && languages ? languages : undefined
+      languagesStr: typeof languages === 'string' && languages && languages !== 'all' ? languages : undefined
     });
     initialSubtitles = subsResult.subtitles;
   } catch (err) {

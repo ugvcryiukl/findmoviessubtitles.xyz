@@ -121,7 +121,7 @@ export async function fetchOpenSubtitlesSubtitles(params: OpenSubtitlesSearchPar
   }
 
   // Handle language mapping (Map full names to ISO 639-1 two-letter codes)
-  if (params.languages) {
+  if (params.languages && params.languages.toLowerCase() !== 'all') {
     const codes = params.languages
       .split(',')
       .map(lang => {

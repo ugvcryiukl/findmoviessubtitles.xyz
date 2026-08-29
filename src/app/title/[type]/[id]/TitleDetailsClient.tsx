@@ -171,7 +171,10 @@ export default function TitleDetailsClient({
       setLoadingSubtitles(true);
       setSubtitlesError(null);
       try {
-        let url = `/api/subtitles?id=${id}&type=${type}&languages=english,spanish,french,arabic,persian,vietnamese`;
+        let url = `/api/subtitles?id=${id}&type=${type}`;
+        if (initialLanguage && initialLanguage !== 'all') {
+          url += `&languages=${encodeURIComponent(initialLanguage)}`;
+        }
         if (type === 'tv') {
           if (fullSeason) {
             url += `&season=${selectedSeason}&fullSeason=true`;
@@ -197,7 +200,7 @@ export default function TitleDetailsClient({
       }
     }
     loadSubtitles();
-  }, [id, type, selectedSeason, selectedEpisode, fullSeason, initialSubtitles]);
+  }, [id, type, selectedSeason, selectedEpisode, fullSeason, initialSubtitles, initialLanguage]);
 
   // Label for local storage history tracking in SubtitleList
   const mediaLabel = type === 'tv' 

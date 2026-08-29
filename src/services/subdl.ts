@@ -64,20 +64,23 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
     comment: '1',
     releases: '1',
     bazarr: '1',
-    subs_per_page: '100'
+    subs_per_page: '30'
   });
 
   if (params.imdb_id) queryParams.append('imdb_id', params.imdb_id);
   else if (params.tmdb_id) queryParams.append('tmdb_id', String(params.tmdb_id));
   else if (params.film_name) queryParams.append('film_name', params.film_name);
 
-  if (params.languages) {
-    // SubDL API wants lowercase comma-separated list of full language names
+  // If a specific language is requested (and not 'all'), filter by it. Otherwise leave empty to fetch all languages!
+  if (params.languages && params.languages.toLowerCase() !== 'all') {
     const formattedLangs = params.languages
       .split(',')
       .map(lang => lang.trim().toLowerCase())
+      .filter(Boolean)
       .join(',');
-    queryParams.append('languages', formattedLangs);
+    if (formattedLangs) {
+      queryParams.append('languages', formattedLangs);
+    }
   }
 
   if (params.type) {
@@ -117,7 +120,27 @@ export async function fetchSubdlSubtitles(params: SubdlQueryParams): Promise<Sub
       return [];
     }
 
-    const rawSubtitles = data.subtitles as RawSubdlSubtitle[];
+    const rawSubtitles = [...(data.subtitles as RawSubdlSubtitle[])];
+
+    // Fetch subsequent pages in parallel (up to 8 pages = 240 subtitles) to ensure all subtitles are retrieved
+    const totalPages = Math.min(data.totalPages || 1, 8);
+    if (totalPages > 1) {
+      const pagePromises = [];
+      for (let p = 2; p <= totalPages; p++) {
+        const pageParams = new URLSearchParams(queryParams);
+        pageParams.set('page', String(p));
+        pagePromises.push(
+          fetch(`${SUBDL_BASE_URL}?${pageParams.toString()}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => (d && d.subtitles ? (d.subtitles as RawSubdlSubtitle[]) : []))
+            .catch(() => [] as RawSubdlSubtitle[])
+        );
+      }
+      const additionalPages = await Promise.all(pagePromises);
+      for (const pageSubs of additionalPages) {
+        rawSubtitles.push(...pageSubs);
+      }
+    }
 
     return rawSubtitles
       .filter(item => {

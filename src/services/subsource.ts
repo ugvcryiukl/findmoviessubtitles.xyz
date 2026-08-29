@@ -12,8 +12,11 @@ function getApiKey() {
 export interface SubsourceMovieResult {
   movieId: number;
   title: string;
-  releaseYear: string;
+  releaseYear: string | number;
   alternateTitle?: string;
+  season?: number | null;
+  type?: string;
+  subtitleCount?: number;
 }
 
 export interface SubsourceSubtitleItem {
@@ -45,7 +48,11 @@ export interface RawSubsourceSubtitle {
   contributors?: SubsourceContributor[];
 }
 
-export async function searchSubsourceMovie(title: string, imdbId?: string): Promise<number | null> {
+export async function searchSubsourceMovie(
+  title: string,
+  imdbId?: string,
+  season?: number
+): Promise<number | null> {
   const apiKey = getApiKey();
   if (!apiKey) return null;
 
@@ -71,13 +78,19 @@ export async function searchSubsourceMovie(title: string, imdbId?: string): Prom
       // Fallback to text search if IMDb search failed and we have title
       if (imdbId && title) {
         console.log(`SubSource: No results for IMDb ID ${imdbId}. Falling back to text search for: ${title}`);
-        return searchSubsourceMovie(title);
+        return searchSubsourceMovie(title, undefined, season);
       }
       return null;
     }
 
-    // Try to find the exact match by release year if searching by title
-    // For simplicity, returning the first result ID
+    // If searching for a specific TV season, match the exact season entry in SubSource
+    if (season !== undefined) {
+      const seasonMatch = results.find(r => r.season === season);
+      if (seasonMatch) {
+        return seasonMatch.movieId;
+      }
+    }
+
     return results[0].movieId;
   } catch (error) {
     console.error('Error searching movie on SubSource:', error);
@@ -87,23 +100,26 @@ export async function searchSubsourceMovie(title: string, imdbId?: string): Prom
 
 export async function fetchSubsourceSubtitles(
   movieId: number,
-  language: string,
+  language?: string,
   season?: number,
   episode?: number
 ): Promise<SubsourceSubtitleItem[]> {
   const apiKey = getApiKey();
   if (!apiKey) {
     console.log('Using mock SubSource data (no API key configured)');
-    return getMockSubtitles(language, season, episode);
+    return getMockSubtitles(language || 'English', season, episode);
   }
 
   try {
     const params: Record<string, string> = {
       api_key: apiKey,
       movieId: String(movieId),
-      language: language.toLowerCase(),
       limit: '100'
     };
+
+    if (language && language.toLowerCase() !== 'all') {
+      params.language = language.toLowerCase();
+    }
 
     if (season !== undefined) params.seasonNumber = String(season);
     if (episode !== undefined) params.episodeNumber = String(episode);
@@ -117,7 +133,27 @@ export async function fetchSubsourceSubtitles(
       return [];
     }
 
-    const rawSubtitles = data.data as RawSubsourceSubtitle[];
+    const rawSubtitles: RawSubsourceSubtitle[] = [...(data.data as RawSubsourceSubtitle[])];
+
+    // Fetch additional pages (up to 4 pages = 400 subtitles) to ensure all subtitles are returned
+    const totalPages = Math.min(data.pagination?.pages || 1, 4);
+    if (totalPages > 1) {
+      const pagePromises = [];
+      for (let p = 2; p <= totalPages; p++) {
+        const pageParams = new URLSearchParams(params);
+        pageParams.set('page', String(p));
+        pagePromises.push(
+          fetch(`${SUBSOURCE_BASE_URL}/subtitles?${pageParams.toString()}`)
+            .then(r => r.ok ? r.json() : null)
+            .then(d => (d && d.data ? (d.data as RawSubsourceSubtitle[]) : []))
+            .catch(() => [] as RawSubsourceSubtitle[])
+        );
+      }
+      const extraPages = await Promise.all(pagePromises);
+      for (const ep of extraPages) {
+        rawSubtitles.push(...ep);
+      }
+    }
 
     return rawSubtitles.map(item => {
       // Extract uploader name
