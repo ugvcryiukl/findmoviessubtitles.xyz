@@ -1,0 +1,193 @@
+.heroWrapper {
+  position: relative;
+  width: 100%;
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 64px 20px 68px;
+  background-color: hsl(var(--bg-main));
+}
+
+.backdropLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.backdropImage {
+  object-fit: cover;
+  object-position: center 25%;
+  transform: scale(1.03);
+  transition: opacity 0.6s ease-in-out, transform 8s ease-out;
+  will-change: opacity, transform;
+}
+
+/* 3-Tier Multi-Layer Dark Gradient Overlay matching SubDL */
+.gradientOverlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    /* Top fade for sticky navbar transition */
+    linear-gradient(180deg, rgba(11, 13, 17, 0.85) 0%, rgba(11, 13, 17, 0.4) 30%, transparent 60%),
+    /* Theatrical radial vignette */
+    radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0.25) 0%, rgba(11, 13, 17, 0.75) 75%, rgba(11, 13, 17, 0.95) 100%),
+    /* Bottom deep fade into the page background (#0b0c0f / hsl(--bg-main)) */
+    linear-gradient(0deg, hsl(var(--bg-main)) 0%, rgba(11, 13, 17, 0.95) 20%, rgba(11, 13, 17, 0.4) 65%, transparent 100%);
+  background-color: rgba(11, 13, 17, 0.35);
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 860px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin: 0 auto;
+}
+
+.heroTitle {
+  font-size: clamp(1.85rem, 4vw, 2.75rem);
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.22;
+  margin-top: 0;
+  margin-bottom: 12px;
+  text-shadow: 0 2px 20px rgba(0, 0, 0, 0.9), 0 1px 4px rgba(0, 0, 0, 0.85);
+  letter-spacing: -0.025em;
+}
+
+.heroSubtitle {
+  font-size: clamp(0.95rem, 2vw, 1.15rem);
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 0;
+  margin-bottom: 26px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  max-width: 680px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.searchContainer {
+  width: 100%;
+  max-width: 740px;
+  margin-bottom: 18px;
+  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.65));
+}
+
+/* Trends Row (SubDL style: ⚡ Trends: Silo, Reacher, Mutiny...) */
+.trendsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 16px;
+  font-size: 0.85rem;
+}
+
+.trendsLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  color: #f59e0b;
+  font-size: 0.8rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.trendLink {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  transition: all var(--transition-fast);
+  text-decoration: none;
+  font-size: 0.82rem;
+}
+
+.trendLink:hover {
+  background: hsl(var(--primary) / 0.25);
+  border-color: hsl(var(--primary));
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Quick Languages Row */
+.quickLanguages {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.langLink {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.langLink:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Floating Backdrop Credit Badge */
+.backdropBadge {
+  position: absolute;
+  bottom: 16px;
+  right: 20px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  transition: all var(--transition-fast);
+  text-decoration: none;
+}
+
+.backdropBadge:hover {
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 768px) {
+  .heroWrapper {
+    min-height: 440px;
+    padding: 48px 16px 56px;
+  }
+
+  .backdropBadge {
+    display: none;
+  }
+}

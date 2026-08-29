@@ -1,11 +1,13 @@
-import { Suspense } from 'react';
 import { Metadata } from 'next';
-import SearchBox from '@/components/SearchBox';
 import MediaCard from '@/components/MediaCard';
 import ContactEmail from '@/components/ContactEmail';
-import { getTrendingMedia } from '@/services/tmdb';
+import HeroSection from '@/components/HeroSection';
+import { getTrendingMedia, getHeroBackdropPool } from '@/services/tmdb';
 import { SITE_CONFIG } from '@/lib/config/site';
+import { Suspense } from 'react';
 import styles from './page.module.css';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: `Download Movie & TV Subtitles | SRT & ZIP | ${SITE_CONFIG.name}`,
@@ -16,7 +18,25 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const trending = await getTrendingMedia();
+  const [trending, backdropPool] = await Promise.all([
+    getTrendingMedia(),
+    getHeroBackdropPool()
+  ]);
+
+  // Select initial backdrop on server for SSR (pure and deterministic)
+  const initialBackdrop = backdropPool.length > 0
+    ? backdropPool[0]
+    : null;
+
+  // Prepare top trends pills from trending (like SubDL: ⚡ Trends: ...)
+  const trendPills = (trending || [])
+    .slice(0, 6)
+    .map(item => ({
+      id: item.id,
+      title: item.title || item.name || '',
+      type: item.media_type,
+    }))
+    .filter(item => item.title);
 
   // Generate a dynamic list of latest subtitles from trending movies and shows
   const latestSubtitles = (trending || []).slice(0, 10).map((media, index) => {
@@ -77,38 +97,24 @@ export default async function Home() {
   };
 
   return (
-    <div className={`container ${styles.homeWrapper}`}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
       />
 
-      {/* Compact Search Portal Header */}
-      <section className={`${styles.searchPortal} animate-fade-in`}>
-        <h1 className={styles.portalTitle}>Find Movie & TV Subtitles</h1>
-        <p className={styles.portalSubtitle}>Download Free SRT & ZIP Subtitles in Multiple Languages</p>
-        <div className={styles.searchContainer}>
-          <Suspense fallback={<div className="spinner" />}>
-            <SearchBox />
-          </Suspense>
-        </div>
+      {/* SubDL-Style Edge-to-Edge Hero with Random TMDB Backdrop & Gradient */}
+      {initialBackdrop && (
+        <HeroSection
+          initialBackdrop={initialBackdrop}
+          backdrops={backdropPool}
+          trends={trendPills}
+        />
+      )}
 
-        {/* Quick Language Links */}
-        <div className={styles.quickLanguages}>
-          <a href="/search?q=popular&languages=english" className={styles.langLink}>English Subtitles</a>
-          <span className={styles.separator}>|</span>
-          <a href="/search?q=popular&languages=arabic" className={styles.langLink}>Arabic Subtitles</a>
-          <span className={styles.separator}>|</span>
-          <a href="/search?q=popular&languages=french" className={styles.langLink}>French Subtitles</a>
-          <span className={styles.separator}>|</span>
-          <a href="/search?q=popular&languages=spanish" className={styles.langLink}>Spanish Subtitles</a>
-          <span className={styles.separator}>|</span>
-          <a href="/search?q=popular&languages=persian" className={styles.langLink}>Farsi/Persian Subtitles</a>
-        </div>
-      </section>
-
-      {/* Latest Subtitles Table */}
-      <section className={styles.latestSection}>
+      <div className={`container ${styles.homeWrapper}`}>
+        {/* Latest Subtitles Table */}
+        <section className={styles.latestSection}>
         <div className={styles.sectionHeader}>
           <h2>Latest Subtitles</h2>
           <p>Recently crawled and merged subtitle files</p>
@@ -259,6 +265,7 @@ export default async function Home() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

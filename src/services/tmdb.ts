@@ -362,3 +362,74 @@ export function getMockPopularList(): TMDBMedia[] {
   ];
 }
 
+export interface HeroBackdropItem {
+  id: number;
+  title: string;
+  backdropUrl: string;
+  mediaType: 'movie' | 'tv';
+  year?: string;
+}
+
+export const FALLBACK_HERO_BACKDROPS: HeroBackdropItem[] = [
+  { id: 125988, title: 'Silo', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/uTWhbLc7Bj4qNSdW3ZvZKL8cOHv.jpg' },
+  { id: 108978, title: 'Reacher', mediaType: 'tv', year: '2022', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pF0qkRsrHkdYadPWY9AMeFZfcwk.jpg' },
+  { id: 5920, title: 'The Mentalist', mediaType: 'tv', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/q3pCsNvJ7CmdJUz2sJEEUY3pOPC.jpg' },
+  { id: 1184918, title: 'Mutiny', mediaType: 'movie', year: '2025', backdropUrl: 'https://image.tmdb.org/t/p/w1280/qDa0fqDqIBCovRp975RvtGPcuN3.jpg' },
+  { id: 1241982, title: 'Spider-Man: Brand New Day', mediaType: 'movie', year: '2026', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pq1Mhdt9LbkQM5TOjuVZpcczbf.jpg' },
+  { id: 278, title: 'The Shawshank Redemption', mediaType: 'movie', year: '1994', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pNjh59JSxChQktamG3LMp9ZoQzp.jpg' },
+  { id: 238, title: 'The Godfather', mediaType: 'movie', year: '1972', backdropUrl: 'https://image.tmdb.org/t/p/w1280/ejdD20cdHNFAYAN2DlqPToXKyzx.jpg' },
+  { id: 200897, title: 'Lioness', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/4NBYDOnEjAzyuP7CMkD5s7fs44K.jpg' },
+  { id: 1022796, title: 'Outer Banks', mediaType: 'tv', year: '2020', backdropUrl: 'https://image.tmdb.org/t/p/w1280/fjJ0aqDeDXFzmFXXJ4CF3ryB19b.jpg' },
+  { id: 157336, title: 'Interstellar', mediaType: 'movie', year: '2014', backdropUrl: 'https://image.tmdb.org/t/p/w1280/rAiYTsgLeikzg0mZpaYUsEZ0wPX.jpg' },
+  { id: 155, title: 'The Dark Knight', mediaType: 'movie', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg' },
+  { id: 27205, title: 'Inception', mediaType: 'movie', year: '2010', backdropUrl: 'https://image.tmdb.org/t/p/w1280/s3TBrRGB1jav7cUUtMVrvNz9GmP.jpg' },
+  { id: 1396, title: 'Breaking Bad', mediaType: 'tv', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg' },
+  { id: 66732, title: 'Stranger Things', mediaType: 'tv', year: '2016', backdropUrl: 'https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg' },
+  { id: 872585, title: 'Oppenheimer', mediaType: 'movie', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg' },
+  { id: 100088, title: 'The Last of Us', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg' },
+];
+
+export async function getHeroBackdropPool(): Promise<HeroBackdropItem[]> {
+  const apiKey = getApiKey();
+  if (!apiKey) return FALLBACK_HERO_BACKDROPS;
+
+  try {
+    const res = await fetch(`${TMDB_BASE_URL}/trending/all/day?api_key=${apiKey}`);
+    if (!res.ok) return FALLBACK_HERO_BACKDROPS;
+    const data = await res.json();
+    const dynamicItems: HeroBackdropItem[] = [];
+
+    for (const item of (data.results || [])) {
+      if (item.backdrop_path && (item.title || item.name)) {
+        const title = item.title || item.name;
+        const dateStr = item.first_air_date || item.release_date;
+        const year = dateStr ? new Date(dateStr).getFullYear().toString() : undefined;
+        dynamicItems.push({
+          id: item.id,
+          title,
+          backdropUrl: getBackdropUrl(item.backdrop_path, 'w1280'),
+          mediaType: item.media_type === 'tv' ? 'tv' : 'movie',
+          year,
+        });
+      }
+    }
+
+    if (dynamicItems.length > 0) {
+      const seen = new Set<number>();
+      const combined: HeroBackdropItem[] = [];
+      for (const item of [...dynamicItems, ...FALLBACK_HERO_BACKDROPS]) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id);
+          combined.push(item);
+        }
+      }
+      return combined;
+    }
+  } catch (err) {
+    console.error('Error loading hero backdrop pool:', err);
+  }
+
+  return FALLBACK_HERO_BACKDROPS;
+}
+
+
