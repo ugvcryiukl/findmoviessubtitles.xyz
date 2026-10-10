@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import MediaCard from '@/components/MediaCard';
-import ContactEmail from '@/components/ContactEmail';
 import HeroSection from '@/components/HeroSection';
 import { getTrendingMedia, getHeroBackdropPool } from '@/services/tmdb';
 import { SITE_CONFIG } from '@/lib/config/site';
@@ -18,9 +17,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [trending, backdropPool] = await Promise.all([
+  const [trending, backdropPool, trendingMovies, trendingShows] = await Promise.all([
     getTrendingMedia(),
-    getHeroBackdropPool()
+    getHeroBackdropPool(),
+    getTrendingMedia('movie'),
+    getTrendingMedia('tv'),
   ]);
 
   // Select initial backdrop on server for SSR (pure and deterministic)
@@ -28,9 +29,10 @@ export default async function Home() {
     ? backdropPool[0]
     : null;
 
-  // Prepare top trends pills from trending (like SubDL: ⚡ Trends: ...)
-  const trendPills = (trending || [])
-    .slice(0, 6)
+  // Interleave the top ten of each category so the server-rendered row is mixed too.
+  const trendPills = Array.from({ length: 10 }, (_, index) => [trendingMovies[index], trendingShows[index]])
+    .flat()
+    .filter(item => item !== undefined)
     .map(item => ({
       id: item.id,
       title: item.title || item.name || '',
@@ -182,7 +184,7 @@ export default async function Home() {
             </div>
           }>
             {(trending || []).map((item) => (
-              <MediaCard key={item.id} media={item} />
+              <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
             ))}
           </Suspense>
         </div>
@@ -234,37 +236,6 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Contact Section */}
-      <section id="contact" className={styles.contactSection}>
-        <div className={styles.contactContainer}>
-          <div className={styles.contactGlow} />
-          <div className={styles.contactCard}>
-            <div className={styles.contactIcon}>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-              </svg>
-            </div>
-            <h2 className={styles.contactTitle}>Support & Feedback</h2>
-            <p className={styles.contactText}>
-              Have questions, suggestions, or feedback? Send an email to the admin team directly.
-            </p>
-            <div className={styles.emailContainer}>
-              <ContactEmail />
-            </div>
-          </div>
-        </div>
-      </section>
       </div>
     </>
   );

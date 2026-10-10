@@ -4,6 +4,7 @@ import { useState } from 'react';
 import SearchBox from '@/components/SearchBox';
 import MediaCard from '@/components/MediaCard';
 import { TMDBMedia } from '@/services/tmdb';
+import type { BrowseMode } from '@/lib/catalog';
 import styles from './page.module.css';
 
 interface SearchResultsClientProps {
@@ -11,6 +12,8 @@ interface SearchResultsClientProps {
   query: string;
   initialType: 'all' | 'movie' | 'tv';
   initialYear: string;
+  browseMode?: BrowseMode;
+  isDemo?: boolean;
 }
 
 export default function SearchResultsClient({
@@ -18,6 +21,8 @@ export default function SearchResultsClient({
   query,
   initialType,
   initialYear,
+  browseMode,
+  isDemo = false,
 }: SearchResultsClientProps) {
   const [filterType, setFilterType] = useState<'all' | 'movie' | 'tv'>(initialType);
   const [filterYear, setFilterYear] = useState<string>(initialYear);
@@ -60,7 +65,7 @@ export default function SearchResultsClient({
     <div className={`container ${styles.searchPage}`}>
       {/* Search Bar Header */}
       <div className={styles.header}>
-        <SearchBox initialQuery={query} initialType={filterType} />
+        <SearchBox key={`${query}-${filterType}`} initialQuery={query} initialType={filterType} />
       </div>
 
       <div className={styles.layout}>
@@ -103,6 +108,7 @@ export default function SearchResultsClient({
             <h3>Release Year</h3>
             <select
               value={filterYear}
+              aria-label="Release year"
               onChange={(e) => setFilterYear(e.target.value)}
               className={styles.yearSelect}
             >
@@ -119,16 +125,19 @@ export default function SearchResultsClient({
         {/* Results Main Grid */}
         <main className={styles.mainContent}>
           <h2 className={styles.resultsTitle}>
-            {query === 'popular' ? 'Popular Media' : `Search results for "${query}"`}
+            {browseMode === 'top-rated'
+              ? `Top Rated ${filterType === 'movie' ? 'Movies' : filterType === 'tv' ? 'TV Shows' : 'Movies & TV Shows'} of All Time`
+              : browseMode === 'popular' ? 'Popular Movies & TV Shows' : `Search results for "${query}"`}
           </h2>
           <p className={styles.resultsCount}>
             Found {filteredResults.length} matching titles
+            {isDemo && <span className={styles.demoNotice}>Sample titles — live rankings are currently unavailable.</span>}
           </p>
 
           {filteredResults.length > 0 ? (
             <div className={styles.resultsGrid}>
               {filteredResults.map((item) => (
-                <MediaCard key={item.id} media={item} />
+                <MediaCard key={`${item.media_type}-${item.id}`} media={item} />
               ))}
             </div>
           ) : (

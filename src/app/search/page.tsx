@@ -1,16 +1,26 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import SearchResultsClient from './SearchResultsClient';
-import { searchMedia } from '@/services/tmdb';
+import { getBrowseMedia, searchMedia } from '@/services/tmdb';
+import { getBrowseMode } from '@/lib/catalog';
 
 interface SearchPageProps {
-  searchParams: Promise<{ q?: string; type?: string; year?: string; languages?: string }>;
+  searchParams: Promise<{ q?: string; browse?: string; type?: string; year?: string; languages?: string }>;
 }
 
 export async function generateMetadata({ searchParams }: SearchPageProps): Promise<Metadata> {
-  const { q, languages } = await searchParams;
+  const { q = '', browse, type, languages } = await searchParams;
+  const browseMode = getBrowseMode(q, browse, type);
+  if (browseMode === 'top-rated') {
+    const category = type === 'movie' ? 'Movies' : type === 'tv' ? 'TV Shows' : 'Movies & TV Shows';
+    return {
+      title: `Top Rated ${category} of All Time | Find Subtitles`,
+      description: `Browse the highest-rated ${category.toLowerCase()} on TMDB and find subtitles in your language.`,
+      alternates: { canonical: `/search?browse=top-rated${type === 'movie' || type === 'tv' ? `&type=${type}` : ''}` },
+    };
+  }
   
-  if (q && q !== 'popular') {
+  if (q && !browseMode) {
     return {
       title: `Search results for "${q}" | Find Subtitles`,
       description: `Find movie and TV show subtitles matching "${q}". Download subtitles in SRT, ZIP format for all languages.`,
@@ -51,10 +61,11 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
 }
 
 export default async function SearchPage({ searchParams }: SearchPageProps) {
-  const { q = '', type = 'all', year = 'all' } = await searchParams;
-  
-  // Fetch results on the server if query is present
-  const results = q.trim() ? await searchMedia(q) : [];
+  const { q = '', browse, type = 'all', year = 'all' } = await searchParams;
+  const browseMode = getBrowseMode(q, browse, type);
+  const catalog = browseMode ? await getBrowseMedia(browseMode) : null;
+  const results = catalog ? catalog.results : q.trim() ? await searchMedia(q) : [];
+  const mediaType = type === 'movie' || type === 'tv' ? type : 'all';
 
   return (
     <Suspense fallback={
@@ -64,8 +75,11 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }>
       <SearchResultsClient
         initialResults={results}
-        query={q}
-        initialType={type as 'all' | 'movie' | 'tv'}
+        key={`${browseMode || 'search'}-${q}-${mediaType}-${year}`}
+        query={browseMode ? '' : q}
+        browseMode={browseMode}
+        isDemo={catalog?.isDemo ?? false}
+        initialType={mediaType}
         initialYear={year}
       />
     </Suspense>

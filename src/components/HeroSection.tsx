@@ -4,14 +4,9 @@ import { useState, useEffect, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import SearchBox from '@/components/SearchBox';
-import { HeroBackdropItem } from '@/services/tmdb';
+import { pickNextHeroBackdrop, type HeroBackdropItem } from '@/services/tmdb';
+import { pickMixedTrends, trendKey, type TrendPill } from '@/lib/trends';
 import styles from './HeroSection.module.css';
-
-interface TrendPill {
-  id: number;
-  title: string;
-  type: 'movie' | 'tv';
-}
 
 interface HeroSectionProps {
   initialBackdrop: HeroBackdropItem;
@@ -26,14 +21,38 @@ export default function HeroSection({
 }: HeroSectionProps) {
   const [currentBackdrop, setCurrentBackdrop] = useState<HeroBackdropItem>(initialBackdrop);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [visibleTrends, setVisibleTrends] = useState(trends.slice(0, 5));
 
-  // Pick a fresh random backdrop from TMDB pool every time user opens or refreshes the page
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (backdrops && backdrops.length > 0) {
-        const randomIndex = Math.floor(Math.random() * backdrops.length);
-        setCurrentBackdrop(backdrops[randomIndex]);
-      }
+      let previous: string[] = [];
+      try {
+        const saved = JSON.parse(sessionStorage.getItem('home_trends') || '[]');
+        if (Array.isArray(saved)) previous = saved.filter(item => typeof item === 'string');
+      } catch { /* Trends also work when storage is unavailable. */ }
+      const selected = pickMixedTrends(trends, previous);
+      setVisibleTrends(selected);
+      try {
+        sessionStorage.setItem('home_trends', JSON.stringify(selected.map(trendKey)));
+      } catch { /* Storage is optional. */ }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [trends]);
+
+  // Rotate only within the curated IMDb classics, avoiding the last displayed film.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      let previousId: number | undefined;
+      try {
+        const saved = sessionStorage.getItem('home_backdrop');
+        if (saved) previousId = Number(saved);
+      } catch { /* Random selection still works without browser storage. */ }
+      const next = pickNextHeroBackdrop(backdrops, previousId);
+      if (!next) return;
+      setCurrentBackdrop(next);
+      try {
+        sessionStorage.setItem('home_backdrop', String(next.id));
+      } catch { /* Storage is optional. */ }
     }, 0);
     return () => clearTimeout(timer);
   }, [backdrops]);
@@ -49,7 +68,7 @@ export default function HeroSection({
             fill
             priority
             sizes="100vw"
-            quality={90}
+            quality={75}
             className={styles.backdropImage}
             onLoad={() => setImageLoaded(true)}
             style={{
@@ -59,7 +78,7 @@ export default function HeroSection({
         )}
       </div>
 
-      {/* SubDL Atmospheric Multi-Tier Dark Gradient Overlay */}
+      {/* Fade only the bottom edge into the page background. */}
       <div className={styles.gradientOverlay} />
 
       {/* Centered Hero Content */}
@@ -79,12 +98,12 @@ export default function HeroSection({
         </div>
 
         {/* SubDL Trends Row (⚡ Trends: Silo, Reacher, Mutiny...) */}
-        {trends.length > 0 && (
-          <div className={styles.trendsRow}>
+        {visibleTrends.length > 0 && (
+          <div className={styles.trendsRow} aria-label="Trending movies and TV shows">
             <span className={styles.trendsLabel}>⚡ Trends:</span>
-            {trends.slice(0, 5).map((item) => (
+            {visibleTrends.map((item) => (
               <Link
-                key={item.id}
+                key={trendKey(item)}
                 href={`/title/${item.type}/${item.id}`}
                 className={styles.trendLink}
               >

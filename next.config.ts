@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'images.metahub.space',
+        pathname: '/background/medium/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'image.tmdb.org',
         pathname: '/t/p/**',
       },

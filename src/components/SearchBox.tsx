@@ -23,14 +23,14 @@ interface RecentSearchItem {
 const suggestionCache: Record<string, SearchSuggestion[]> = {};
 
 export default function SearchBox({
-  initialQuery = '',
-  initialType = 'all',
+  initialQuery,
+  initialType,
   placeholder = 'Search movies, TV shows, release files...'
 }: SearchBoxProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const [query, setQuery] = useState(initialQuery || searchParams.get('q') || '');
+  const [query, setQuery] = useState(initialQuery ?? searchParams.get('q') ?? '');
   const [type, setType] = useState<'all' | 'movie' | 'tv'>(
     initialType || (searchParams.get('type') as 'all' | 'movie' | 'tv') || 'all'
   );
@@ -256,10 +256,15 @@ export default function SearchBox({
             ref={inputRef}
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowDropdown(true);
+            }}
             onFocus={handleFocus}
+            onClick={() => setShowDropdown(true)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
+            aria-label="Search movies and TV shows"
             className={styles.searchInput}
             required
             autoComplete="off"

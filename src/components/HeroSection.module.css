@@ -6,7 +6,9 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  /* Clip the backdrop in its own layer, while allowing search results outside the hero. */
+  overflow: visible;
+  z-index: 1;
   padding: 64px 20px 68px;
   background-color: hsl(var(--bg-main));
 }
@@ -26,20 +28,13 @@
   will-change: opacity, transform;
 }
 
-/* 3-Tier Multi-Layer Dark Gradient Overlay matching SubDL */
+/* Keep the image clear at the top; fade only its bottom edge. */
 .gradientOverlay {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background:
-    /* Top fade for sticky navbar transition */
-    linear-gradient(180deg, rgba(11, 13, 17, 0.85) 0%, rgba(11, 13, 17, 0.4) 30%, transparent 60%),
-    /* Theatrical radial vignette */
-    radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0.25) 0%, rgba(11, 13, 17, 0.75) 75%, rgba(11, 13, 17, 0.95) 100%),
-    /* Bottom deep fade into the page background (#0b0c0f / hsl(--bg-main)) */
-    linear-gradient(0deg, hsl(var(--bg-main)) 0%, rgba(11, 13, 17, 0.95) 20%, rgba(11, 13, 17, 0.4) 65%, transparent 100%);
-  background-color: rgba(11, 13, 17, 0.35);
+  background: linear-gradient(to bottom, transparent 55%, hsl(var(--bg-main) / 0.5) 80%, hsl(var(--bg-main)) 100%);
 }
 
 .heroContent {
@@ -77,10 +72,11 @@
 }
 
 .searchContainer {
+  position: relative;
+  z-index: 4;
   width: 100%;
   max-width: 740px;
   margin-bottom: 18px;
-  filter: drop-shadow(0 12px 30px rgba(0, 0, 0, 0.65));
 }
 
 /* Trends Row (SubDL style: ⚡ Trends: Silo, Reacher, Mutiny...) */

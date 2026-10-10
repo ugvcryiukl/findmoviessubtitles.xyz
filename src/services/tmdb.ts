@@ -104,12 +104,13 @@ export async function getSeasonDetails(tvId: number, seasonNumber: number) {
   }
 }
 
-export async function getTrendingMedia(): Promise<TMDBMedia[]> {
+export async function getTrendingMedia(type: 'all' | 'movie' | 'tv' = 'all'): Promise<TMDBMedia[]> {
   const apiKey = getApiKey();
-  if (!apiKey) return getMockTrending();
+  const fallback = () => getMockPopularList().filter(item => type === 'all' || item.media_type === type).slice(0, 12);
+  if (!apiKey) return fallback();
 
   try {
-    const res = await fetch(`${TMDB_BASE_URL}/trending/all/day?api_key=${apiKey}`);
+    const res = await fetch(`${TMDB_BASE_URL}/trending/${type}/day?api_key=${apiKey}`);
     if (!res.ok) throw new Error(`TMDB Trending error: ${res.status}`);
     const data = await res.json();
     return (data.results || [])
@@ -117,7 +118,7 @@ export async function getTrendingMedia(): Promise<TMDBMedia[]> {
       .slice(0, 12) as TMDBMedia[];
   } catch (error) {
     console.error('Error fetching TMDB trending:', error);
-    return getMockTrending();
+    return fallback();
   }
 }
 
@@ -225,32 +226,6 @@ function getMockSeasonDetails(seasonNumber: number) {
   };
 }
 
-function getMockTrending(): TMDBMedia[] {
-  return [
-    {
-      id: 27205,
-      title: 'Inception',
-      media_type: 'movie',
-      release_date: '2010-07-15',
-      poster_path: null,
-      backdrop_path: null,
-      overview: 'Inception trending card description.',
-      vote_average: 8.4
-    },
-    {
-      id: 1396,
-      title: 'Breaking Bad',
-      name: 'Breaking Bad',
-      media_type: 'tv',
-      first_air_date: '2008-01-20',
-      poster_path: null,
-      backdrop_path: null,
-      overview: 'Breaking Bad trending card description.',
-      vote_average: 8.9
-    }
-  ];
-}
-
 export async function getPopularMovies(page = 1): Promise<TMDBMedia[]> {
   const apiKey = getApiKey();
   if (!apiKey) return [];
@@ -305,6 +280,20 @@ export async function getTopRatedTVShows(page = 1): Promise<TMDBMedia[]> {
     console.error('Error fetching top rated TV shows:', error);
     return [];
   }
+}
+
+export async function getBrowseMedia(mode: 'top-rated' | 'popular'): Promise<{ results: TMDBMedia[]; isDemo: boolean }> {
+  const [movies, shows] = await Promise.all(mode === 'top-rated'
+    ? [getTopRatedMovies(), getTopRatedTVShows()]
+    : [getPopularMovies(), getPopularTVShows()]);
+  const isDemo = movies.length === 0 || shows.length === 0;
+  const samples = getMockPopularList();
+  const results = [
+    ...(movies.length ? movies : samples.filter(item => item.media_type === 'movie')),
+    ...(shows.length ? shows : samples.filter(item => item.media_type === 'tv')),
+  ];
+  if (mode === 'top-rated') results.sort((a, b) => b.vote_average - a.vote_average);
+  return { results, isDemo };
 }
 
 export function getMockPopularList(): TMDBMedia[] {
@@ -364,72 +353,121 @@ export function getMockPopularList(): TMDBMedia[] {
 
 export interface HeroBackdropItem {
   id: number;
+  imdbId: string;
   title: string;
   backdropUrl: string;
-  mediaType: 'movie' | 'tv';
-  year?: string;
+  mediaType: 'movie';
+  year: string;
 }
 
-export const FALLBACK_HERO_BACKDROPS: HeroBackdropItem[] = [
-  { id: 125988, title: 'Silo', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/uTWhbLc7Bj4qNSdW3ZvZKL8cOHv.jpg' },
-  { id: 108978, title: 'Reacher', mediaType: 'tv', year: '2022', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pF0qkRsrHkdYadPWY9AMeFZfcwk.jpg' },
-  { id: 5920, title: 'The Mentalist', mediaType: 'tv', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/q3pCsNvJ7CmdJUz2sJEEUY3pOPC.jpg' },
-  { id: 1184918, title: 'Mutiny', mediaType: 'movie', year: '2025', backdropUrl: 'https://image.tmdb.org/t/p/w1280/qDa0fqDqIBCovRp975RvtGPcuN3.jpg' },
-  { id: 1241982, title: 'Spider-Man: Brand New Day', mediaType: 'movie', year: '2026', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pq1Mhdt9LbkQM5TOjuVZpcczbf.jpg' },
-  { id: 278, title: 'The Shawshank Redemption', mediaType: 'movie', year: '1994', backdropUrl: 'https://image.tmdb.org/t/p/w1280/pNjh59JSxChQktamG3LMp9ZoQzp.jpg' },
-  { id: 238, title: 'The Godfather', mediaType: 'movie', year: '1972', backdropUrl: 'https://image.tmdb.org/t/p/w1280/ejdD20cdHNFAYAN2DlqPToXKyzx.jpg' },
-  { id: 200897, title: 'Lioness', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/4NBYDOnEjAzyuP7CMkD5s7fs44K.jpg' },
-  { id: 1022796, title: 'Outer Banks', mediaType: 'tv', year: '2020', backdropUrl: 'https://image.tmdb.org/t/p/w1280/fjJ0aqDeDXFzmFXXJ4CF3ryB19b.jpg' },
-  { id: 157336, title: 'Interstellar', mediaType: 'movie', year: '2014', backdropUrl: 'https://image.tmdb.org/t/p/w1280/rAiYTsgLeikzg0mZpaYUsEZ0wPX.jpg' },
-  { id: 155, title: 'The Dark Knight', mediaType: 'movie', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/nMKdUUepR0i5zn0y1T4CsSB5chy.jpg' },
-  { id: 27205, title: 'Inception', mediaType: 'movie', year: '2010', backdropUrl: 'https://image.tmdb.org/t/p/w1280/s3TBrRGB1jav7cUUtMVrvNz9GmP.jpg' },
-  { id: 1396, title: 'Breaking Bad', mediaType: 'tv', year: '2008', backdropUrl: 'https://image.tmdb.org/t/p/w1280/tsRy63Mu5cu8etL1X7ZLyf7UP1M.jpg' },
-  { id: 66732, title: 'Stranger Things', mediaType: 'tv', year: '2016', backdropUrl: 'https://image.tmdb.org/t/p/w1280/56v2KjBlU4XaOv9rVYEQypROD7P.jpg' },
-  { id: 872585, title: 'Oppenheimer', mediaType: 'movie', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/fm6KqXpk3M2HVveHwCrBSSBaO0V.jpg' },
-  { id: 100088, title: 'The Last of Us', mediaType: 'tv', year: '2023', backdropUrl: 'https://image.tmdb.org/t/p/w1280/uDgy6hyPd82kOHh6I95FLtLnj6p.jpg' },
+// Curated pre-2000 members of https://www.imdb.com/chart/top/.
+// Membership checked 2026-10-10; this is a selection, not a live copy of the chart.
+// Artwork and TMDB IDs verified through Cinemeta's public movie metadata.
+export const VINTAGE_HERO_BACKDROPS: HeroBackdropItem[] =[
+  {
+    "id": 3082,
+    "imdbId": "tt0027977",
+    "title": "Modern Times",
+    "year": "1936",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0027977/img"
+  },
+  {
+    "id": 289,
+    "imdbId": "tt0034583",
+    "title": "Casablanca",
+    "year": "1942",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0034583/img"
+  },
+  {
+    "id": 567,
+    "imdbId": "tt0047396",
+    "title": "Rear Window",
+    "year": "1954",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0047396/img"
+  },
+  {
+    "id": 346,
+    "imdbId": "tt0047478",
+    "title": "Seven Samurai",
+    "year": "1954",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0047478/img"
+  },
+  {
+    "id": 389,
+    "imdbId": "tt0050083",
+    "title": "12 Angry Men",
+    "year": "1957",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0050083/img"
+  },
+  {
+    "id": 539,
+    "imdbId": "tt0054215",
+    "title": "Psycho",
+    "year": "1960",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0054215/img"
+  },
+  {
+    "id": 429,
+    "imdbId": "tt0060196",
+    "title": "The Good, the Bad and the Ugly",
+    "year": "1966",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0060196/img"
+  },
+  {
+    "id": 238,
+    "imdbId": "tt0068646",
+    "title": "The Godfather",
+    "year": "1972",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0068646/img"
+  },
+  {
+    "id": 240,
+    "imdbId": "tt0071562",
+    "title": "The Godfather Part II",
+    "year": "1974",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0071562/img"
+  },
+  {
+    "id": 278,
+    "imdbId": "tt0111161",
+    "title": "The Shawshank Redemption",
+    "year": "1994",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0111161/img"
+  },
+  {
+    "id": 680,
+    "imdbId": "tt0110912",
+    "title": "Pulp Fiction",
+    "year": "1994",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0110912/img"
+  },
+  {
+    "id": 424,
+    "imdbId": "tt0108052",
+    "title": "Schindler's List",
+    "year": "1993",
+    "mediaType": "movie",
+    "backdropUrl": "https://images.metahub.space/background/medium/tt0108052/img"
+  }
 ];
 
-export async function getHeroBackdropPool(): Promise<HeroBackdropItem[]> {
-  const apiKey = getApiKey();
-  if (!apiKey) return FALLBACK_HERO_BACKDROPS;
-
-  try {
-    const res = await fetch(`${TMDB_BASE_URL}/trending/all/day?api_key=${apiKey}`);
-    if (!res.ok) return FALLBACK_HERO_BACKDROPS;
-    const data = await res.json();
-    const dynamicItems: HeroBackdropItem[] = [];
-
-    for (const item of (data.results || [])) {
-      if (item.backdrop_path && (item.title || item.name)) {
-        const title = item.title || item.name;
-        const dateStr = item.first_air_date || item.release_date;
-        const year = dateStr ? new Date(dateStr).getFullYear().toString() : undefined;
-        dynamicItems.push({
-          id: item.id,
-          title,
-          backdropUrl: getBackdropUrl(item.backdrop_path, 'w1280'),
-          mediaType: item.media_type === 'tv' ? 'tv' : 'movie',
-          year,
-        });
-      }
-    }
-
-    if (dynamicItems.length > 0) {
-      const seen = new Set<number>();
-      const combined: HeroBackdropItem[] = [];
-      for (const item of [...dynamicItems, ...FALLBACK_HERO_BACKDROPS]) {
-        if (!seen.has(item.id)) {
-          seen.add(item.id);
-          combined.push(item);
-        }
-      }
-      return combined;
-    }
-  } catch (err) {
-    console.error('Error loading hero backdrop pool:', err);
-  }
-
-  return FALLBACK_HERO_BACKDROPS;
+export function pickNextHeroBackdrop(pool: HeroBackdropItem[], previousId?: number): HeroBackdropItem | undefined {
+  const different = pool.filter(item => item.id !== previousId);
+  const candidates = different.length ? different : pool;
+  return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
-
+export async function getHeroBackdropPool(): Promise<HeroBackdropItem[]> {
+  return VINTAGE_HERO_BACKDROPS;
+}

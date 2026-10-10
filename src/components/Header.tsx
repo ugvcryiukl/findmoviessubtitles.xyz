@@ -28,14 +28,11 @@ export default function Header() {
             <Link href="/search?q=popular" className={styles.navLink}>
               Latest
             </Link>
-            <Link href="/search?q=popular&type=movie" className={styles.navLink}>
+            <Link href="/search?browse=top-rated&type=movie" className={styles.navLink}>
               Movies
             </Link>
-            <Link href="/search?q=popular&type=tv" className={styles.navLink}>
+            <Link href="/search?browse=top-rated&type=tv" className={styles.navLink}>
               TV Shows
-            </Link>
-            <Link href="/#contact" className={styles.navLink}>
-              Contact
             </Link>
             <button
               onClick={() => setPanelOpen(true)}

@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import styles from './Footer.module.css';
 import { SITE_CONFIG } from '@/lib/config/site';
 
@@ -10,10 +9,6 @@ export default function Footer() {
           <p className={styles.brand}>{SITE_CONFIG.domain}</p>
           <p className={styles.copy}>
             &copy; {new Date().getFullYear()} {SITE_CONFIG.domain}. All rights reserved.
-            {' • '}
-            <Link href="/#contact" className={styles.link}>
-              Contact
-            </Link>
           </p>
         </div>
         <div className={styles.right}>
